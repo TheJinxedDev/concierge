@@ -378,3 +378,4 @@ used by the verified runtime bootstrap and synthetic acceptance path:
 - [`scripts/run_automatic_capture.py`](scripts/run_automatic_capture.py)
 - [`scripts/run_automatic_promotion.py`](scripts/run_automatic_promotion.py)
 - [`scripts/run_beta_smoke.py`](scripts/run_beta_smoke.py)
+- [`scripts/run_synthetic_pending_only.py`](scripts/run_synthetic_pending_only.py)
