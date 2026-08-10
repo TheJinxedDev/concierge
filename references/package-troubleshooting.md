@@ -2,15 +2,9 @@
 
 **P6 warning:** Mutating commands must use explicit temporary targets. The package CLI's `preflight` is read-only; `install`/`upgrade`/`uninstall` own only package files; Hermes MCP/cron, capture state, and the durable library remain separate gates.
 
-## Private direct install URL
+## No direct install URL
 
-The versioned raw `SKILL.md` URL is:
-
-```text
-https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
-```
-
-This repository is private, so the URL requires GitHub access for the Hermes process. Do not replace it with an unversioned branch URL or claim anonymous public installation.
+This checkout currently has no configured Git remote. A raw `SKILL.md` URL cannot be resolved honestly until a repository and versioned ref exist. Do not invent a GitHub owner, repository, tag, or URL. Use the manifest's `raw_skill_url: unresolved` state.
 
 ## Skill path versus profile distribution
 

@@ -1,6 +1,6 @@
 # Concierge package verification
 
-**Artifact status:** the local clean-room and beta smoke evidence is complete and reproducible; the private `v0.1.16-dev` ref is now versioned, while the broader public-release gate and real-provider behavioral acceptance remain distinct.
+**Artifact status:** P7.7 local clean-room evidence packet is complete and reproducible; the P8 release gate remains distinct and blocked by the unresolved public URL and real-provider behavioral acceptance.
 
 ## P6.1 checks
 
@@ -13,7 +13,7 @@ uv run pytest -q
 git diff --check
 ```
 
-The package-layout test checks the root skill name/version, manifest identity, required support files, fixture markers, export/migration compatibility claims, and the explicit private-install boundary.
+The package-layout test checks the root skill name/version, manifest identity, required support files, fixture markers, export/migration compatibility claims, and the explicit no-installable-claim state.
 
 ## Later evidence levels
 
