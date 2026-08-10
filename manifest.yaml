@@ -5,9 +5,9 @@ version: 0.1.16-dev
 artifact_status: rough-semantic-beta
 distribution: direct-skill
 skill_path: SKILL.md
-raw_skill_url: https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
+raw_skill_url: https://raw.githubusercontent.com/TheJinxedDev/concierge/main/SKILL.md
 raw_skill_url_pattern: https://raw.githubusercontent.com/<owner>/<repository>/<ref>/SKILL.md
-setup_status: beta_smoke_verified
+setup_status: native-hermes-boundary-verified
 installable_claim: true
 live_setup_performed: false
 temporary_smoke_performed: true
@@ -40,11 +40,7 @@ support_files:
 package_files:
   - scripts/concierge_package.py
   - scripts/concierge_setup.py
-  - scripts/run_synthetic_pending_only.py
-  - scripts/run_synthetic_completed_sessions.py
-  - scripts/run_automatic_capture.py
   - scripts/run_automatic_promotion.py
-  - scripts/run_beta_smoke.py
   - backend/app/package_preflight.py
   - backend/app/package_lifecycle.py
   - backend/app/package_mcp.py
@@ -66,21 +62,16 @@ package_files:
   - backend/app/capture_source.py
   - backend/app/capture_batch.py
   - backend/app/capture_claims.py
-  - backend/app/capture_enablement.py
   - backend/app/capture_state.py
   - backend/app/capture_state_store.py
   - backend/app/capture_report.py
   - backend/app/completed_session_source.py
   - backend/app/completed_session_worker.py
-  - backend/app/hermes_state_reader.py
   - backend/app/automatic_capture.py
   - backend/app/automation_preferences.py
   - backend/app/automation_promotion.py
   - backend/app/automation_cron_identity.py
-  - backend/app/cron_identity.py
-  - backend/app/cron_lifecycle.py
-  - backend/app/synthetic_capture_execution.py
-  - backend/app/synthetic_tracer.py
+
   - backend/tests/fixtures/concierge_e2e/source_catalog.json
   - backend/tests/fixtures/concierge_e2e/seed_export.json
   - pyproject.toml
@@ -89,9 +80,9 @@ package_files:
 release_evidence:
   report_schema: "1"
   install_report: install-report.json
-  local_smoke_status: complete
+  local_smoke_status: complete-native-hermes-boundary
   public_url_status: public_resolved
-  smoke_report: BETA_SMOKE_EVIDENCE.json
+  smoke_report: native-hermes-boundary-local-disposable
   linux_scope: untested-theoretical-only
 
 compatibility:

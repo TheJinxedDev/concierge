@@ -44,14 +44,16 @@ into ongoing capture.
 
 ## Package ownership
 
-The package-owned cron identities are exact: `concierge-backlog-capture`,
+The native-Hermes cron plans are exact: `concierge-backlog-capture`,
 `concierge-session-capture`, and `concierge-auto-promotion`, each with its own
 `concierge/automation/<kind>` owner marker, package marker `concierge@0.1.16-dev`,
 `concierge` skill, Sunday 04:00 host-local/no-catch-up schedule, explicit local
-delivery, and fingerprinted package-owned prompt. Familiar names alone never
-establish ownership. The backlog job is finite and retires only after verified
-terminal readback; the recent job is ongoing and proposal-only; promotion is a
-separate canonical mutation path outside MCP.
+delivery, workdir, and fingerprinted prompt. Familiar names alone never
+establish ownership. Concierge persists only the explicit preferences and plan;
+Hermes creates, reads back, and removes jobs through its public scheduler. The
+backlog job is finite and reports readiness for user-directed removal after a
+verified terminal pass; the recent job is ongoing and proposal-only; promotion
+is a separate canonical mutation path outside MCP.
 
 Canonical sources for the full contracts are `backend/app/capture_contract.py`,
 `backend/app/capture_envelope.py`, `backend/app/capture_state.py`,

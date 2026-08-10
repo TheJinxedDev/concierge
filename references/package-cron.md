@@ -1,49 +1,40 @@
-# Concierge cron package boundary
+# Concierge automation boundary
 
-The private development package defines three exact, package-owned automation
-jobs. Creating them remains opt-in and profile-scoped; installation alone never
-creates them. The backlog, recent completed-session capture, and automatic
-promotion lanes are separate identities and separate onboarding choices.
+Concierge has three independent, opt-in automation plans. Installation creates
+none of them. Concierge stores the explicit preferences and returns a plan; the
+selected Hermes profile creates and owns jobs through the public `cronjob` tool
+or `hermes cron` CLI.
 
-| Field | Exact value |
-|---|---|
-| Job name | `concierge-backlog-capture`, `concierge-session-capture`, `concierge-auto-promotion` |
-| Owner marker | `concierge/automation/backlog`, `concierge/automation/recent_capture`, `concierge/automation/promotion` |
-| Skill tuple | `("concierge",)` |
-| Schedule | Sunday 04:00, host-local, no catch-up |
-| Delivery | `local` for the CLI beta test |
-| Capture mode | proposal-only package runners; no active-session observer |
-| Backlog policy | `process_existing` or `start_fresh` |
+| Plan | What it does | What it never does |
+|---|---|---|
+| `concierge-backlog-capture` | One bounded pass over selected, completed prior sessions | Reads an active session, promotes, or writes a score |
+| `concierge-session-capture` | Ongoing bounded reviews of newly ended sessions | Reads a raw Hermes database or writes canonical media |
+| `concierge-auto-promotion` | Applies the documented 0.85 beta rubric to eligible pending proposals | Runs without a backlog/recent capture source or invents scores |
 
-Ownership is established by the complete fingerprinted prompt, stable name,
-schedule, delivery, and skill identity—not by a familiar name alone. Same-name
-legacy records and fingerprint drift are conflicts. Uninstall/update removes or
-changes only an exact owned record.
+Every generated plan has a stable name, owner marker, schedule, local delivery,
+`concierge` skill, workdir, and prompt fingerprint. A familiar name alone is
+not ownership: native Hermes readback must confirm the full plan before use.
 
-## Creation gate
+## Consent gate
 
-Onboarding asks and persists three independent yes/no choices: finite backlog,
-recent completed-session capture, and automatic promotion. It also persists the
-backlog policy (`process_existing` or `start_fresh`) and the optional favorite-
-media interview choice. The exact confirmation is:
+Onboarding explains and records separate yes/no choices for backlog capture,
+ongoing completed-session capture, and automatic promotion. A missing answer is
+not consent. `process_existing` also requires backlog capture.
 
-```text
-I explicitly choose Concierge automation
-```
+Automatic promotion is rejected unless either backlog or ongoing capture is
+enabled. There is no `promotion_only` setup lane: on a fresh profile it would
+be an empty, misleading job.
 
-The setup helper reconciles the profile-scoped Hermes cron store and reads back
-every created record's owner metadata, fingerprint, schedule, delivery, skill,
-and enabled state. An exact repeat is a no-op; a same-name collision or drifted
-fingerprint stops without overwrite. The prompts carry the absolute runtime,
-Hermes home, data directory, and the exact package-owned runner command.
+## Native Hermes boundary
 
-A scheduler status such as `last_status=ok` is never sufficient evidence. Each
-runner must read back its own proposal/report/state and canonical before/after
-snapshot. The finite backlog runner independently accepts backlog consent,
-processes ended sessions only, and removes only its exact owned record after a
-verified `complete` or `no_visible_evidence` terminal pass with no remaining
-backlog, retryable/blocked claims, errors, canonical mutation, or uncertain
-readback. Partial, blocked, failed, unknown-commit, lock, source, and uncertain
-readback results retain the job for retry. The ongoing recent runner advances a
-durable watermark and never promotes. The promotion runner is separate and
-applies the documented `0.85` beta threshold, retaining abstentions.
+Concierge does not import a private Hermes scheduler, inspect a Hermes source
+checkout, open a Hermes state database, or install `croniter`. Scheduled capture
+uses the native `session_search` tool; job creation, readback, and removal use
+native Hermes scheduling tools. If the native tool cannot prove an ended-session
+boundary or a job's exact identity, it must abstain and report the blocker.
+
+Capture creates only reviewable proposals with source context and uncertainty.
+Promotion is a separate job and must report canonical before/after receipts;
+scheduler `last_status` is not a receipt. A finished backlog job reports that it
+is ready for user-directed removal rather than attempting to mutate its own
+scheduler record.

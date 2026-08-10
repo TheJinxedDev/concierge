@@ -53,7 +53,7 @@ There are three independent choices:
    Process existing completed conversations, or start fresh.
 
 2. **Ended-session capture**<br>
-   Inspect newly completed sessions after the durable processing watermark and create observations or proposals from clear evidence.
+   Use Hermes' native completed-session search to review a bounded set of prior sessions and create proposals only from clear evidence.
 
 3. **Automatic promotion**<br>
    Apply the current beta `0.85` promotion rubric to eligible pending proposals.
@@ -75,13 +75,22 @@ Concierge records canonical before/after snapshots around promotion, so automate
 
 ## Installation
 
-Install the Concierge skill directly into Hermes:
+Give your Hermes agent this repository link and ask it to set Concierge up in
+the currently selected profile. The agent should read [`SKILL.md`](SKILL.md),
+clone or download this checkout as the beta runtime, and follow the explicit
+profile/MCP/cron consent flow.
+
+If you want to install the onboarding skill directly first, use the current
+public-beta branch:
 
 ```text
-hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
+hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/main/SKILL.md
 ```
 
-Or give your Hermes agent the repository and ask it to set Concierge up in the currently selected profile.
+The skill then obtains the repository checkout; it does not try to build or
+search for a second Hermes installation. This beta changes quickly, so record
+the commit hash in any report rather than assuming an old release tag describes
+the current code.
 
 For example:
 
@@ -91,27 +100,27 @@ Concierge is designed to integrate with an existing Hermes profile rather than i
 
 ## Current beta status
 
-The current `0.1.16-dev` candidate has been tested on two Windows machines, including a throwaway Hermes profile with synthetic data.
+The current `0.1.16-dev` source-branch candidate has a local disposable
+Windows smoke of package install/removal, MCP discovery, native Hermes cron
+creation/readback/removal, explicit automation choices, and empty-inbox
+promotion. A full fresh-agent walkthrough from this public link is the next
+test—not a claim already being made here.
 
 Current testing covers:
 
 - package installation and uninstall;
-- all three automation configurations;
-- ended-session observation capture;
+- explicit cron-plan generation and rejection of promotion with no capture source;
+- native Hermes cron creation/readback/removal in a disposable profile;
 - automatic promotion using the `0.85` beta rubric;
-- pending abstention for low-confidence and inferred-score candidates;
-- canonical before/after readback;
-- semantic title and dimension queries;
-- proposal-only MCP submission;
-- redacted readback;
-- protection against generated numeric taste scores;
-- cleanup and profile isolation.
+- protection against generated numeric taste scores and active-session observation;
+- package cleanup and profile isolation.
 
 ### Platform support
 
 **Windows is currently the tested path.**
 
-Linux is expected to work, but it has not yet received equivalent testing. Reports from Linux users would be especially useful.
+Linux may work, but it has not been tested for this candidate. Reports from
+Linux users would be especially useful; it is not a compatibility promise yet.
 
 Active-session observation is not currently part of Concierge. The existing automation works from completed sessions.
 

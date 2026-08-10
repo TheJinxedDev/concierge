@@ -15,7 +15,6 @@ class AutomationLane(str, Enum):
     FULLY_MANUAL = "fully_manual"
     SEMI_AUTO = "semi_auto"
     FULLY_AUTO = "fully_auto"
-    PROMOTION_ONLY = "promotion_only"
 
 
 @dataclass(frozen=True)
@@ -37,13 +36,17 @@ class AutomationPreferences:
             raise ValueError("decided_at must not be blank")
         if self.favorite_media_interview and not self.backlog_cron_enabled:
             raise ValueError("favorite media interview requires backlog cron")
+        if self.promotion_cron_enabled and not (
+            self.backlog_cron_enabled or self.recent_capture_cron_enabled
+        ):
+            raise ValueError(
+                "automatic promotion requires an enabled capture source"
+            )
 
     @property
     def lane(self) -> AutomationLane:
         if self.recent_capture_cron_enabled and self.promotion_cron_enabled:
             return AutomationLane.FULLY_AUTO
-        if self.promotion_cron_enabled:
-            return AutomationLane.PROMOTION_ONLY
         if self.recent_capture_cron_enabled:
             return AutomationLane.SEMI_AUTO
         return AutomationLane.FULLY_MANUAL

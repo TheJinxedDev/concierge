@@ -1,384 +1,168 @@
 ---
 name: concierge
-description: Operate Concierge's local-first media library through its review-first API and MCP surfaces.
+description: Set up and operate Concierge, a local-first semantic media archive with proposal-first capture and factual MCP queries.
 version: 0.1.16-dev
 ---
 
-# Concierge agent onboarding
+# Concierge public-beta onboarding
 
-## Safety contract
+Concierge is a **rough public beta**: local-first media history and taste evidence
+with a visible proposal queue instead of silent edits. It is meant to be used,
+prodded, and reported on—not mistaken for finished software.
 
-- Canonical media, creator, observation, rating, progress, relationship, and recommendation records are durable user data. Do not use raw SQLite or bypass `LibraryService`.
-- Conversation capture is **proposal-first**. `submit_pending_proposal` creates only a `needs_review` inbox item; its receipt is not confirmation and it does not change canonical media.
-- Never accept, reject, import, restore, archive, or overwrite a record merely because a conversation supplied plausible information. Promotion is also explicit user review by default; only an independently enabled `fully_auto` promotion job may apply the small documented beta rubric and threshold.
-- Preserve a specific, non-secret `source_context`, use stable caller-owned IDs, and set bounded confidence from 0 through 1. Reuse an ID only for a deliberate retry; collisions are rejected, not overwritten.
-- When identity, category, status, rating, user intent, or source attribution is ambiguous, ask or keep the candidate incomplete rather than inventing a canonical record.
+## Non-negotiable boundaries
 
-## First-run onboarding
+- Canonical media, observations, ratings, progress, and relationships are durable
+  user data. Use the Concierge API/MCP surface; never edit SQLite directly.
+- `submit_pending_proposal` creates only a `needs_review` item. It is not a
+  canonical write or confirmation.
+- No active-session observer exists. Scheduled capture may inspect only ended,
+  prior sessions through Hermes' native `session_search` tool.
+- Concierge never generates numeric taste scores. Preserve clear evidence or
+  abstain; do not fill gaps with plausible-looking data.
+- Automatic promotion is opt-in, uses the beta's documented `0.85` rubric, and
+  must report canonical before/after receipts. Abstentions stay pending.
+- Do not search for a Hermes source checkout, a Hermes virtualenv, private
+  `cron`/`hermes_state` modules, or `croniter`. Concierge is a Hermes
+  application: use native Hermes tools (`session_search`, `cronjob`) and public
+  `hermes` CLI commands only.
 
-Run this section only when the user asks to set up Concierge. Work inside the
-currently selected Hermes profile's own data root, and never touch another profile's MCP, cron,
-sessions, memories, or database. The old `%LOCALAPPDATA%\\taste-database` path is a
-technical compatibility fallback only; it is not the product name or a license to
-use machine-wide data.
+## Install from this public-beta repository
 
-The automation choices are independent and explicit:
+The repository checkout is the beta runtime. The direct skill alone is not a
+second copy of Hermes and does not contain a hidden Hermes backend.
 
-- `fully_manual` means both ongoing recent capture and automatic promotion are
-  off. The database, GUI, and factual MCP surface remain available.
-- `semi_auto` means recent completed-session capture is on and automatic
-  promotion is off. Capture creates only `needs_review` proposals.
-- `fully_auto` means recent completed-session capture and the separate automatic
-  promotion cron are both on. Promotion still uses the beta threshold and may
-  leave candidates pending; it never watches the active conversation.
-- `promotion_only` is allowed when a user wants a promotion pass over an
-  existing pending inbox without enabling ongoing capture.
+1. Work in the user-selected Hermes profile. If the target profile is unclear,
+   ask; never assume or mutate another/default profile.
+2. Clone or download the repository into a fresh temporary directory. Record the
+   exact commit used for the test receipt.
+3. From that checkout, run the read-only preflight:
 
-The three scheduled jobs are separate: a finite backlog pass, an ongoing recent
-completed-session capture pass, and a later automatic promotion pass. A `false`
-answer is persisted just as deliberately as a `true` answer. No active-session
-observer is created by any lane.
+   ```text
+   uv run --locked python scripts/concierge_package.py preflight --check-commands
+   ```
 
-### 1. Fetch and install the immutable runtime
+   Stop if it reports a checksum, inventory, symlink, traversal, secret, or
+   compatibility problem.
+4. Choose explicit, profile-scoped absolute paths:
+   - `<HERMES_HOME>` — the selected profile's Hermes home (`hermes config path`
+     can help resolve it);
+   - `<LOCALAPPDATA>` — that profile's local application-data parent;
+   - `<CONCIERGE_ENV>` — an external environment directory, not `.venv` inside
+     the checkout or installed artifact.
+5. Install the reviewed checkout into the selected profile only:
 
-The direct Hermes skill installer places this onboarding file plus its
-references and helper scripts in the selected profile. It does **not** copy the
-full backend/runtime artifact into the skill directory. Do not run the helper
-scripts from that support-only tree and do not silently invent a runtime path.
+   ```text
+   UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked python scripts/concierge_package.py install --artifact-root . --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+   ```
 
-Fetch the exact versioned release archive and its `.sha256` sidecar from the
-public Concierge repository:
+   Require an `installed` or exact-owned `noop` JSON receipt. Keep its reported
+   install/runtime path and artifact hash for uninstall or feedback.
+6. Initialize an empty, profile-scoped Concierge library:
 
-```text
-https://github.com/TheJinxedDev/concierge/releases/download/v0.1.16-dev/CONCIERGE_0.1.16-dev_PUBLICATION.zip
-https://github.com/TheJinxedDev/concierge/releases/download/v0.1.16-dev/CONCIERGE_0.1.16-dev_PUBLICATION.zip.sha256
-```
+   ```text
+   UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_setup.py initialize --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA> --environment-dir <CONCIERGE_ENV>
+   ```
 
-Keep both files in a fresh, profile-scoped staging directory. Verify the
-archive against the sidecar before extraction, reject absolute/traversal
-members and symlinks, and stop on any checksum or archive-inventory mismatch.
-Extract the archive to `<CONCIERGE_SOURCE>`; it must contain `manifest.yaml`,
-`pyproject.toml`, `backend/`, `scripts/concierge_package.py`, and `uv.lock`.
-The archive is the source passed to the package lifecycle below, not the
-support-only tree created by `hermes skills install`.
+   This creates only the selected library. It does **not** inspect history,
+   create a cron job, enable capture, or generate scores.
 
-Hermes may show a community-skill security `CAUTION` for the package's bounded
-`os.environ` sandboxing and `uv run` commands. A blocked scan is not an install
-receipt. Review the exact versioned URL and archive checksum first; only use
-the installer's explicit `--force` override for this verified public candidate,
-never for an unknown source, and retain the scan result in the disposable test
-receipt.
+## Add and verify the semantic MCP server
 
-Resolve the selected profile's absolute `HERMES_HOME` and `LOCALAPPDATA` and
-choose an external `<CONCIERGE_ENV>` sibling path. Then install the verified
-artifact into those explicit targets:
+Use the exact command/args returned in the setup receipt. Its expected shape is:
 
 ```text
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_SOURCE> --project <CONCIERGE_SOURCE> python scripts/concierge_package.py install --artifact-root <CONCIERGE_SOURCE> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+HERMES_HOME=<HERMES_HOME> hermes mcp add taste_database --command uv --env UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> PYTHONDONTWRITEBYTECODE=1 --args run --locked --directory <CONCIERGE_RUNTIME>/backend --project <CONCIERGE_RUNTIME> python -m app.mcp_entry --data-dir <CONCIERGE_DATA>
+HERMES_HOME=<HERMES_HOME> hermes mcp test taste_database
 ```
 
-The installer safely adopts the already-installed raw-skill support tree only
-when its exact owned files and content hash match the archive; any edit, extra
-file, missing file, symlink, or unrelated existing runtime is a conflict and
-must stop. Read the JSON receipt and require `action=installed` (or an exact
-owned `noop`), the expected artifact hash, and the reported runtime path. The
-runtime is `<CONCIERGE_INSTALL>\\artifact`, where `<CONCIERGE_INSTALL>` is the
-versioned path reported by the installer beneath
-`<LOCALAPPDATA>\\Concierge\\packages\\0.1.16-dev`.
+`hermes mcp add` performs discovery and asks for a confirmation before saving
+the entry. Confirm only after its command, profile-scoped paths, and nine-tool
+list match the setup receipt.
 
-### 2. Resolve the installed runtime and profile data root
+If a same-name MCP entry already exists, inspect it first. An exact entry can be
+reused after a successful test; different command, arguments, environment, or
+profile is a conflict—do not overwrite it.
 
-Read the package `installation.json` from `<CONCIERGE_INSTALL>`. Verify its
-artifact hash and file list against the preflight/install receipt, read its
-`artifact_directory` (currently `artifact`), and set `<CONCIERGE_RUNTIME>` to
-that child directory.
-Verify that `<CONCIERGE_RUNTIME>` contains `pyproject.toml`, `backend/`, and
-`scripts/concierge_setup.py` before running anything. Resolve the active
-profile's Hermes home from `HERMES_HOME` or `hermes config path`; set
-`<CONCIERGE_DATA>` to `<HERMES_HOME>\\concierge-data`. Both paths must be
-absolute and profile-scoped. If either path is ambiguous, stop and ask rather
-than falling back.
+The MCP surface provides semantic, factual reads and one proposal-only write.
+It does not expose review, deletion, raw SQL, cron-policy changes, or score
+writes.
 
-### 2. Initialize the local database
+## Explain the automation choices before asking
 
-Set `<CONCIERGE_ENV>` to the profile-scoped environment path returned by the
-setup contract. By default it is a hidden sibling of the versioned install
-directory beneath `...\\Concierge\\packages` (for example,
-`...\\packages\\.0.1.16-dev.venv`), outside both the immutable artifact and
-the versioned install directory. Do not let `uv` create `.venv` under either
-`<CONCIERGE_RUNTIME>` or `<CONCIERGE_INSTALL>`.
+Start fully manual. Explain these independent optional jobs in plain language,
+then ask for a separate **yes/no** answer to each:
 
-Run the package setup helper once:
+1. **One-time backlog capture** — looks through a bounded set of *existing,
+   completed* conversations and turns only clear evidence into pending
+   proposals. If yes, separately ask whether to `process existing` or `start
+   fresh`. It never watches an active chat and never promotes.
+2. **Ongoing ended-session capture** — periodically examines newly completed
+   sessions and creates reviewable proposals. It is proposal-only: no canonical
+   promotion and no invented score.
+3. **Automatic promotion** — periodically applies the conservative `0.85` beta
+   rubric to eligible pending proposals and records canonical before/after
+   receipts. It can be imperfect—that is part of this beta—but uncertain items
+   remain pending.
+
+Do **not** offer or accept promotion by itself. It requires at least one enabled
+capture source (backlog or ongoing capture); otherwise there is nothing safe for
+it to promote. An unanswered question is not consent. Pause and ask for the
+missing answer rather than guessing a mode.
+
+Persist the answers and receive native Hermes job plans:
 
 ```text
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_setup.py initialize --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA>
+UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_setup.py save-automation-preferences --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA> --decision-id <DECISION_ID> --backlog-cron <yes|no> --recent-capture-cron <yes|no> --promotion-cron <yes|no> --backlog-policy <process_existing|start_fresh> --favorite-media-interview <yes|no> --confirmation "I explicitly choose Concierge automation"
 ```
 
-A `database_initialized` or exact `database_ready` result is acceptable. Read
-back the reported database path. This creates/migrates only the selected local
-library; it does not import user data, enable capture, or create a cron job.
+That command stores Concierge preferences and **returns plans only**. It must
+not create or modify Hermes jobs itself.
 
-### 3. Register and verify the profile-scoped MCP server
+Create each explicitly approved plan through the active Hermes application's
+native `cronjob` tool, attaching the `concierge` skill and returned workdir. If
+the tool is unavailable, use the public `HERMES_HOME=<HERMES_HOME> hermes cron
+create` CLI equivalent. Never let a fallback CLI command silently target a
+different/default profile.
+After creation, read the job back with native Hermes tools and check its name,
+schedule, prompt fingerprint, skill, and local delivery. Never import a private
+Hermes scheduler module from Concierge code.
 
-Use the exact `mcp` command/args returned by the setup helper. The expected
-shape is:
+For the backlog plan, report completion after a verified terminal pass; do not
+have the job modify its own scheduler record. A user-directed follow-up may
+remove its exact native job after checking the receipt.
+
+## Capture and query behavior
+
+- For scheduled capture, use `session_search` on ended prior sessions only.
+  When evidence is weak, ambiguous, or belongs to the active chat, abstain.
+- Search canonical media first. Existing works get observation proposals;
+  genuinely distinct identified works may get a complete `media_item` proposal.
+  Do not create either canonically.
+- Preserve explicit consumption facts without inventing opinions, dates,
+  relationships, or numeric ratings.
+- For media-shaped questions, query Concierge before relying on memory: use
+  `search_media`, `get_media`, `get_taste_report`, `get_rating_history`, or
+  `get_dimension_profile` as appropriate. Pending proposals are not canonical
+  evidence and must be labelled pending.
+
+## Beta limits and useful feedback
+
+- This beta was smoke-tested on Windows. Linux is plausible but **not tested or
+  supported yet**; report results rather than treating them as a compatibility
+  promise.
+- There is no active-session capture, no hidden provider setup, no automatic
+  numeric scoring, and no claim of real-model conversational behavior.
+- Report install friction, unclear consent questions, false/absent capture
+  candidates, proposal-review problems, promotion surprises, data-safety
+  concerns, and platform results with the commit hash and non-secret receipt.
+
+## Uninstall
+
+Use the artifact hash from the install receipt and target the same explicit
+profile paths. This removes only the package-owned runtime and Concierge skill
+files; it does not delete the user library, MCP entry, or Hermes jobs silently.
 
 ```text
-hermes mcp add taste_database --command uv --env UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> PYTHONDONTWRITEBYTECODE=1 --args run --locked --directory <CONCIERGE_RUNTIME>\\backend --project <CONCIERGE_RUNTIME> python -m app.mcp_entry --data-dir <CONCIERGE_DATA>
-hermes mcp test taste_database
+UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_package.py uninstall --version 0.1.16-dev --expected-artifact-hash <INSTALL_RECEIPT_HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
 ```
-
-`--env` must carry the exact external environment entry returned by the setup
-helper, and `--args` must be the final Hermes option. Do not replace `app.mcp_entry` with
-`app.mcp_server`: the entry point pins the data directory before the server is
-imported. If `taste_database` already exists, inspect its exact command/args;
-an exact owned entry is a no-op after a successful test, while a same-name drift
-is a conflict and must not be overwritten. Verify the nine-tool registry and
-one disposable search plus proposal/write/readback call before proceeding.
-
-At this point onboarding is still `fully_manual`. Do not create a scheduler
-just because MCP works.
-
-### 4. Explain manual entry, then choose three independent automation consents
-
-Before asking about automation, explain the manual path plainly: the user can
-open the local Concierge GUI, add or edit a media record, review captured
-proposals, accept or reject a proposal, and explicitly promote an accepted
-proposal. The GUI is the visible review surface; the MCP read tools are the
-agent's factual query surface. A user can always paste a link and say what they
-want saved, even with every cron disabled.
-
-Use **How should Concierge be set up?** only as an orientation question; answer
-it with the three independent decisions below, never with one inferred mode.
-
-Ask each scheduled job as a separate yes/no decision. Do not compress these into
-one mode question, infer a missing answer, or treat one consent as consent for
-another job:
-
-The backlog question must distinguish **process existing completed conversations**
-from **start fresh from the first run**; these are separate from the yes/no
-answer about whether the backlog cron runs.
-
-1. **Backlog cron:** should Concierge run one finite pass to process existing
-   completed conversations that already exist? If yes, ask separately whether to
-   `process existing` or `start fresh`; this job retires after a verified
-   terminal pass.
-2. **Recent capture cron:** should Concierge periodically crawl only newly
-   completed sessions after its durable watermark and create reviewable
-   proposals? It never reads an active conversation and never promotes.
-3. **Automatic promotion cron:** should Concierge periodically apply the beta
-   confidence rubric to eligible pending proposals? Explain that this is the
-   fully automatic beta boundary: threshold `0.85`, high-confidence supported
-   candidates may be promoted, and occasional incorrect promotions are accepted
-   for now. Abstentions remain pending; metadata and inferred rating scores do
-   not pass the beta gate.
-
-If backlog consent is yes, offer the optional short interview about the user's
-core favorite movies, television, anime, games, or other media. The interview
-is optional and must happen before the first backlog pass; it is never a hidden
-prerequisite for using Concierge. If the user accepts, conduct it before the
-first backlog scheduler tick: ask for roughly three to five exact titles across
-the user's core media interests, the category/medium for each, and one short
-reason it matters. Search existing canonical records first. Treat answers as
-user-directed onboarding input: save only when the user explicitly asks to save
-an entry, use the normal reviewable proposal/manual-entry path, and never
-silently promote an interview answer. If the user skips or pauses the interview,
-record that choice and continue without blocking setup.
-
-Persist all three boolean answers, the backlog policy, and the interview choice
-in one profile-scoped automation-preferences record. Derive the displayed lane
-from those booleans; do not store a single lossy mode as the source of truth.
-
-### Clarification timeout and no-guess rule
-
-A clarification timeout is not an answer. If a clarification window closes
-without an explicit user choice, do not guess, silently choose a lane, or turn
-the timeout into `start_fresh`, `process_existing`, `fully_manual`, or any
-other policy value. Do not spend another model/tool turn trying to resolve the
-missing choice automatically.
-
-Stop onboarding at the unanswered decision. Do not write or complete the
-capture enablement decision, create or modify a capture job, initialize capture
-state, or run a backlog pass. Leave harmless setup already completed for the
-selected profile—such as the local database or MCP registration—unchanged.
-Send one short user-facing request naming the exact missing choice. For an
-unanswered backlog question, say: **“Setup is paused. I still need your
-explicit backlog choice: reply `process existing` or `start fresh`. No capture job was enabled.”** When the user replies, resume from the unanswered decision
-without re-asking an independently answered question.
-
-Use the setup helper with all three explicit cron answers:
-
-```text
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_setup.py save-automation-preferences --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA> --hermes-home <HERMES_HOME> --decision-id <DECISION_ID> --backlog-cron <yes|no> --recent-capture-cron <yes|no> --promotion-cron <yes|no> --backlog-policy <process_existing|start_fresh> --favorite-media-interview <yes|no> --confirmation "I explicitly choose Concierge automation"
-```
-
-The helper rejects missing or ambiguous answers and persists explicit `no`
-values. `start_fresh` is valid when backlog cron is disabled because it records
-the boundary policy for a later explicit enablement; it does not create a job.
-The helper creates only the exact owned jobs corresponding to the three enabled
-answers: `concierge-backlog-capture`, `concierge-session-capture`, and
-`concierge-auto-promotion`.
-
-The created prompts carry the absolute runtime, Hermes home, data directory, and
-package-owned runner command. The backlog runner is independent of the recent
-capture choice; the promotion runner is independent of both capture choices.
-The package command's exit status and JSON readback are the run result, not the
-scheduler's last-status field. A verified finite backlog run removes only its
-exact owned `concierge-backlog-capture` record.
-
-The helper reconciles the profile-scoped Hermes cron store in the same command.
-Read back every created job's exact role, owner metadata, schedule, delivery,
-and prompt fingerprint, and require a ready scheduler result. Never adopt a
-same-name job with different ownership or fingerprint.
-
-The `off + process_existing` job is temporary and exact-owned. After a verified
-`complete` or clean `no_visible_evidence` run with no remaining backlog,
-retryable/blocked claims, canonical mutation, or failed proposal/report/state
-readback, the worker must remove that exact job and verify that it is absent.
-Any partial, blocked, failed, unknown-commit, lock, source, or uncertain
-readback result keeps the job for a safe retry. Never remove a same-name or
-fingerprint-conflicted job.
-
-### 5. Validate with synthetic completed sessions before any live use
-
-Before allowing the backlog job to read real Hermes history, run the packaged
-synthetic fixture harness. It must seed only the profile-scoped disposable
-library, run through the real Hermes cron store/scheduler boundary, create
-review-only proposals, persist the capture report/state/watermark, and prove
-canonical IDs are unchanged. Synthetic cases are not permission to inspect the
-active session or the user's real session database.
-
-Run the harness with the same external environment:
-
-```text
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/run_synthetic_completed_sessions.py --hermes-home <HERMES_HOME> --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA>
-```
-
-The synthetic run must report:
-
-- completed source records only, after the durable per-pass discovery boundary;
-- exact proposal readback with `review_state=needs_review`;
-- durable action/cursor/watermark state;
-- unchanged canonical media before/after;
-- no active-session observation, score invention, default-profile access, or
-  automatic promotion during the capture-only synthetic pass.
-
-If the synthetic or real completed-session adapter is unavailable, stop at
-`PARTIAL` rather than substituting active-session observation or a guessed
-source. Automatic promotion is tested separately through its rubric and
-promotion job; it is never smuggled into the capture worker.
-
-
-The trigger boundary is explicit. In the active conversation, submit one complete proposal using `submit_pending_proposal` only when the user explicitly asks to make/save an entry. An ordinary media remark—even a clear one—must not silently create a proposal just because the agent noticed useful evidence. A standing mode selection authorizes only its separately scheduled completed-session job; it does not authorize an active-conversation observer.
-
-The scheduled path is batch-only: in `semi_auto`, a package-owned worker may
-read completed prior sessions after its durable session/message watermark and
-create bounded `needs_review` proposals. Its initial discovery boundary is a
-bootstrap boundary, not a permanent rejection fence: each later run takes a
-fresh `as_of`, appends newly discovered exact source cursors atomically, and
-processes only the resulting durable ledger. Discovery may advance while a
-blocked processing watermark remains held; no source outside the ledger may
-be processed. `fully_manual` has no **ongoing** gathering job, but it may
-explicitly opt into one bounded existing-backlog review pass. Manual entry and
-explicit capture requests remain available in all three product settings.
-`fully_auto` is available only when the user separately enabled recent capture
-and promotion; it does not authorize active-session observation.
-
-1. Search canonical records first. If one exact existing record is identified, propose an `observation` against its stable ID with `assistant_inferred` provenance and source context.
-2. If the conversation establishes a distinct new work sufficiently to name and categorize it, submit a `media_item` proposal containing the proposed record. Do **not** create the work directly.
-3. Treat direct user statements as evidence, not as permission to infer every missing field. Do not manufacture ratings, progress, credits, relationships, or detailed observations.
-4. **Consumption is independently valuable from evaluation.** When the user clearly establishes that they have consumed, are consuming, caught up with, finished, dropped, or otherwise have lifecycle history for a work, preserve the supported status/progress fact even if rating, observations, dates, credits, relationships, and other fields are absent. The v1.8 typed `rating_event`/`progress_event` queue is an application import/export/service contract, not an MCP mutation in this beta; do not claim that `submit_pending_proposal` can write typed lifecycle events. Until a separately reviewed typed MCP mutation exists, keep such lifecycle candidates out of the MCP write path rather than silently coercing them.
-5. Keep provisional emotional reactions and tentative scores separate from the consumption fact. A user can have a canonical or reviewable consumption record with no rating at all; tentative reactions belong in source context or a reviewable observation, not an invented final rating.
-6. Tell the user the proposal is pending review unless the separately enabled
-   promotion cron later promotes it through the beta rubric. The Concierge UI
-   can inspect it, accept/reject it, and manually promote it when automatic
-   promotion is disabled.
-
-## Automatic querying contract
-
-Automatic querying is part of the Concierge beta. A fresh agent must route
-media-shaped questions to Concierge's canonical read surface without requiring
-the user to say "use Concierge": what the user watched, what episode or
-installment they are on, what they rated, what they seem to value from recorded
-evidence, and requests for recommendations all require a bounded Concierge read
-before memory or general web search. Use `search_media`/`get_media` to identify
-the work, then `get_taste_report`, `get_rating_history`,
-`get_dimension_profile`, or progress-bearing `get_media` data as applicable.
-
-Recommendation prose is generated from returned canonical evidence and clearly
-separates fact from judgment. Do not write a recommendation ledger entry unless
-the user explicitly asks to record that recommendation. Pending proposals are
-not canonical evidence and must be labeled as pending if the user asks about
-captured-but-not-promoted material.
-
-## Read surface
-
-Use bounded factual tools before relying on memory:
-
-- `search_media` finds canonical title/alias candidates.
-- `get_media` retrieves one exact record; archives are opt-in.
-- `get_taste_report`, `get_dimension_profile`, `get_rating_history`, and `list_evidence_dimensions` return deterministic cited projections, not taste conclusions.
-- `list_pending_proposals` and `get_proposal` return bounded, exact legacy/typed proposal views with canonical-versus-proposed separation; pending is the default review-state and archives are opt-in. MCP proposal reads redact source context and hide private/recommendation-excluded proposed observation content even though the service retains the write-time evidence for review.
-
-The beta MCP boundary has nine registered tools: the six factual reads, the two proposal reads, and the one `submit_pending_proposal` mutation. Review, acceptance, promotion, import, restore, archive, delete, raw SQL, score writes, and automation-policy mutation remain excluded from MCP discovery. Automatic promotion is a package-owned scheduler path, not an MCP write tool.
-
-## Local verification
-
-From the repository root:
-
-```bash
-uv run pytest -q
-cd frontend && npm test && npm run build
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked fastmcp list --command "uv run --locked --directory <CONCIERGE_RUNTIME>/backend --project <CONCIERGE_RUNTIME> python -m app.mcp_entry --data-dir <CONCIERGE_DATA>" --input-schema --json
-```
-
-Do not treat a successful MCP tool registration as proof that a write is canonical. Verify the returned proposal state and inspect it through the API/UI review queue before any user-directed acceptance or promotion.
-
-## Versioned package boundary
-
-This root skill is the rough `concierge` semantic-beta direct Hermes skill, version `0.1.16-dev`. It includes the package lifecycle, semantic MCP reads, ended-session observation capture, three independently explicit package-owned cron choices, and the separate `0.85` automatic-promotion path. Capture is proposal-first and promotion emits canonical before/after receipts; no active-session observer or generated numeric taste score is included. Historical P6.5 smoke evidence is not the beta verdict. Installation never silently targets the default profile; the onboarding section is the explicit, user-directed path for setup and consent.
-
-The package manifest is [`manifest.yaml`](manifest.yaml). This public rough beta has a versioned repository ref, a resolved `raw_skill_url`, and `installable_claim: true`; the direct installation URL is publicly fetchable. The supported direct installation uses:
-
-```text
-hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
-```
-
-For a read-only local preflight from the repository root:
-
-```bash
-uv run python scripts/concierge_package.py preflight --check-commands --report .hermes/concierge-beta/install-report.json
-```
-
-The preflight reports the artifact hash, current Hermes/Python/uv evidence when requested, exact data/runtime/profile paths, and publication status. Without `--report` it creates no directories and performs no profile, MCP, cron, capture, or database mutation. With `--report`, it writes only the explicitly requested report path and marks that narrow filesystem side effect in the receipt; the selected environment remains untouched. P6.2–P6.5 describe the historical package plumbing and smoke layers; the current `0.1.16-dev` beta gate is the bounded automation/semantic-read smoke described in the package contracts and known limitations.
-
-The package-file lifecycle is explicit and target-scoped:
-
-```bash
-uv run python scripts/concierge_package.py install --artifact-root . --hermes-home <temporary-hermes-home> --local-appdata <temporary-local-appdata>
-uv run python scripts/concierge_package.py uninstall --version 0.1.16-dev --expected-artifact-hash <read-from-install-receipt> --hermes-home <temporary-hermes-home> --local-appdata <temporary-local-appdata>
-```
-
-Mutating package-file commands require explicit target paths and refuse to adopt drifted files. They own only the package runtime and `skills/concierge` tree. The onboarding helper then performs separately visible, profile-scoped database/consent setup, while Hermes MCP and cron remain independently read back and conflict-checked. `scripts/concierge_package.py` is a repository/runtime command, not a claim that a direct skill install silently configures another profile.
-
-Read the bounded support documents before implementing later setup slices:
-
-- [`references/package-preflight.md`](references/package-preflight.md)
-- [`references/package-verification.md`](references/package-verification.md)
-- [`references/package-contracts.md`](references/package-contracts.md)
-- [`references/package-troubleshooting.md`](references/package-troubleshooting.md)
-- [`references/package-mcp.md`](references/package-mcp.md)
-- [`references/package-cron.md`](references/package-cron.md)
-- [`references/package-upgrade-recovery.md`](references/package-upgrade-recovery.md)
-- [`references/fixture-catalog.md`](references/fixture-catalog.md)
-- [`references/compatibility-matrix.md`](references/compatibility-matrix.md)
-- [`references/scoring-disabled-policy.md`](references/scoring-disabled-policy.md)
-- [`references/known-limitations.md`](references/known-limitations.md)
-
-The direct skill installer must also fetch the package-owned execution helpers
-used by the verified runtime bootstrap and synthetic acceptance path:
-
-- [`scripts/run_automatic_capture.py`](scripts/run_automatic_capture.py)
-- [`scripts/run_automatic_promotion.py`](scripts/run_automatic_promotion.py)
-- [`scripts/run_beta_smoke.py`](scripts/run_beta_smoke.py)
-- [`scripts/run_synthetic_pending_only.py`](scripts/run_synthetic_pending_only.py)

@@ -1,6 +1,6 @@
 # Concierge MCP package boundary
 
-The private development package owns a profile-scoped stdio MCP launch shape. It
+The public-beta package defines a profile-scoped stdio MCP launch shape. It
 is still explicit and reversible: package installation does not alter Hermes
 configuration, while the onboarding skill performs the user-directed add/test
 step and reads the result back.
