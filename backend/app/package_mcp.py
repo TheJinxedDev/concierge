@@ -113,11 +113,17 @@ def build_mcp_server_spec(
     args_tuple = tuple(args)
     environment: tuple[str, ...] = ()
     if data_directory is not None:
-        environment_root = (
-            Path(environment_directory).expanduser()
-            if environment_directory is not None
-            else runtime.parent / ".venv"
-        )
+        if environment_directory is not None:
+            environment_root = Path(environment_directory).expanduser()
+        elif runtime.name == "artifact":
+            # Installed packages expose the runnable project one level below
+            # the versioned install directory. Keep the uv environment beside
+            # that directory so uninstall can quarantine the whole version
+            # without retaining a handle beneath it.
+            environment_root = runtime.parent.parent / f".{runtime.parent.name}.venv"
+        else:
+            # Source artifacts use the versioned project directory directly.
+            environment_root = runtime.parent / f".{runtime.name}.venv"
         if not environment_root.is_absolute():
             raise ValueError("MCP environment directory must be an absolute path")
         try:

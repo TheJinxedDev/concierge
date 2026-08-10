@@ -101,9 +101,12 @@ than falling back.
 
 ### 2. Initialize the local database
 
-Set `<CONCIERGE_ENV>` to the sibling profile-scoped environment path
-`<CONCIERGE_RUNTIME>\\..\\.venv`. It must be outside the immutable artifact;
-do not let `uv` create `.venv` under `<CONCIERGE_RUNTIME>`.
+Set `<CONCIERGE_ENV>` to the profile-scoped environment path returned by the
+setup contract. By default it is a hidden sibling of the versioned install
+directory beneath `...\\Concierge\\packages` (for example,
+`...\\packages\\.0.1.16-dev.venv`), outside both the immutable artifact and
+the versioned install directory. Do not let `uv` create `.venv` under either
+`<CONCIERGE_RUNTIME>` or `<CONCIERGE_INSTALL>`.
 
 Run the package setup helper once:
 

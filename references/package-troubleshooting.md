@@ -2,9 +2,19 @@
 
 **P6 warning:** Mutating commands must use explicit temporary targets. The package CLI's `preflight` is read-only; `install`/`upgrade`/`uninstall` own only package files; Hermes MCP/cron, capture state, and the durable library remain separate gates.
 
-## No direct install URL
+## Public direct install URL
 
-The repository has a private versioned ref, but anonymous raw `SKILL.md` installation is not claimed until the repository is public. Do not invent a different GitHub owner, repository, tag, or URL. Keep the manifest's `raw_skill_url: unresolved` and `installable_claim: false` state until public visibility is intentionally enabled.
+The public versioned raw skill URL is:
+
+`https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md`
+
+The public rough-beta release archive and checksum sidecar are linked from the
+`v0.1.16-dev` release. Verify that exact archive and its SHA-256 sidecar before
+extraction; do not substitute a branch, a working checkout, or a different
+owner/repository/tag. A community-skill scanner may require the installer's
+explicit `--force` override after the verified URL and checksum have been
+reviewed. That override is for this known candidate only, not for an unknown
+source.
 
 ## Skill path versus profile distribution
 

@@ -560,6 +560,56 @@ def _remove_tree(path: Path, *, require_owned_stage: bool = False) -> None:
         raise
 
 
+def _quarantine_tree(path: Path) -> tuple[Path, _PathIdentity]:
+    """Move one owned tree aside without deleting it yet.
+
+    Uninstall uses this two-phase form for the skill and runtime roots so a
+    transient failure moving the second root can roll the first move back
+    instead of leaving a half-removed installation.
+    """
+
+    _assert_no_symlink_component(path, "package removal target")
+    if not path.exists():
+        raise PackageArtifactError(f"package removal target disappeared: {path}")
+    source_identity = _path_identity(path)
+    quarantine = path.with_name(f".{path.name}.delete-{uuid.uuid4().hex}")
+    _atomic_move_no_replace(
+        path,
+        quarantine,
+        expected_source_identity=source_identity,
+    )
+    return quarantine, source_identity
+
+
+def _move_uninstall_cwd_outside_owned_trees(
+    runtime_path: Path,
+    skill_path: Path,
+    fallback: Path,
+) -> None:
+    """Release a Windows current-directory handle before quarantining roots."""
+
+    if os.name != "nt":
+        return
+    current = Path.cwd().resolve(strict=False)
+    owned_roots = (
+        runtime_path.resolve(strict=False),
+        skill_path.resolve(strict=False),
+    )
+    if not any(current == root or root in current.parents for root in owned_roots):
+        return
+    safe_cwd = fallback.resolve(strict=False)
+    if any(safe_cwd == root or root in safe_cwd.parents for root in owned_roots):
+        raise PackageArtifactError(
+            "uninstall fallback directory is inside a package-owned tree"
+        )
+    try:
+        os.chdir(safe_cwd)
+    except OSError as exc:
+        raise PackageArtifactError(
+            f"uninstall could not leave package-owned current directory: {exc}"
+        ) from exc
+
+
 def _conflict(reason: str, installation: PackageInstallation | None = None) -> LifecycleResult:
     return LifecycleResult(
         action=LifecycleAction.CONFLICT,
@@ -763,11 +813,49 @@ def uninstall_artifact(
     ):
         return _conflict("installed runtime artifact has drifted; refusing to delete user changes", installation)
 
+    skill_quarantine: tuple[Path, _PathIdentity] | None = None
+    runtime_quarantine: tuple[Path, _PathIdentity] | None = None
     try:
-        _remove_tree(skill_path)
-        _remove_tree(runtime_path)
-    except OSError as exc:
-        return LifecycleResult(LifecycleAction.FAILED, f"uninstall failed after mutation: {exc}", True, installation)
+        _move_uninstall_cwd_outside_owned_trees(runtime_path, skill_path, local_appdata)
+        skill_quarantine = _quarantine_tree(skill_path)
+        runtime_quarantine = _quarantine_tree(runtime_path)
+    except Exception as exc:
+        if skill_quarantine is not None:
+            quarantine, identity = skill_quarantine
+            try:
+                _atomic_move_no_replace(
+                    quarantine,
+                    skill_path,
+                    expected_source_identity=identity,
+                )
+            except Exception as rollback_exc:
+                return LifecycleResult(
+                    LifecycleAction.FAILED,
+                    f"uninstall failed before deletion and rollback failed: {exc}; {rollback_exc}",
+                    True,
+                    installation,
+                )
+        return LifecycleResult(
+            LifecycleAction.FAILED,
+            f"uninstall failed before deletion; exact package preserved: {exc}",
+            False,
+            installation,
+        )
+
+    try:
+        if skill_quarantine is not None:
+            _assert_no_symlink_component(skill_quarantine[0], "package quarantine target")
+            shutil.rmtree(skill_quarantine[0])
+        if runtime_quarantine is not None:
+            _assert_no_symlink_component(runtime_quarantine[0], "package quarantine target")
+            shutil.rmtree(runtime_quarantine[0])
+    except Exception as exc:
+        return LifecycleResult(
+            LifecycleAction.FAILED,
+            f"uninstall quarantine cleanup failed after mutation: {exc}",
+            True,
+            installation,
+        )
     if skill_path.exists() or runtime_path.exists():
         return LifecycleResult(LifecycleAction.FAILED, "uninstall failed exact absence readback", True, installation)
     return LifecycleResult(LifecycleAction.REMOVED, "removed exact package-owned files", True, installation)
