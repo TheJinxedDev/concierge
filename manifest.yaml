@@ -5,10 +5,10 @@ version: 0.1.16-dev
 artifact_status: rough-semantic-beta
 distribution: direct-skill
 skill_path: SKILL.md
-raw_skill_url: unresolved
+raw_skill_url: https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
 raw_skill_url_pattern: https://raw.githubusercontent.com/<owner>/<repository>/<ref>/SKILL.md
 setup_status: beta_smoke_verified
-installable_claim: false
+installable_claim: true
 live_setup_performed: false
 temporary_smoke_performed: true
 default_profile_mutated: false
@@ -90,7 +90,7 @@ release_evidence:
   report_schema: "1"
   install_report: install-report.json
   local_smoke_status: complete
-  public_url_status: private_repository
+  public_url_status: public_resolved
   smoke_report: BETA_SMOKE_EVIDENCE.json
   linux_scope: untested-theoretical-only
 
