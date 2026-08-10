@@ -47,4 +47,4 @@ uv run python scripts/concierge_package.py install --artifact-root . --hermes-ho
 uv run python scripts/concierge_package.py recover --hermes-home <temporary-hermes-home> --local-appdata <temporary-local-appdata>
 ```
 
-Those commands own only the versioned package runtime and `skills/concierge`; MCP, cron, consent, and SQLite remain separate gates. P6.5 supplies the temporary-profile smoke evidence. A public direct URL remains blocked until a real repository remote/ref exists.
+Those commands own only the versioned package runtime and `skills/concierge`; MCP, cron, consent, and SQLite remain separate gates. The exact private prerelease supplies temporary-profile smoke evidence. A public direct URL remains blocked while the repository is private; do not mistake the private versioned ref for anonymous installability.

@@ -1,6 +1,6 @@
 # Concierge package verification
 
-**Artifact status:** P7.7 local clean-room evidence packet is complete and reproducible; the P8 release gate remains distinct and blocked by the unresolved public URL and real-provider behavioral acceptance.
+**Artifact status:** rough `0.1.16-dev` semantic-beta private-prerelease evidence packet is complete for the recorded Windows scope. Public visibility and broader provider/Linux acceptance remain outside this packet.
 
 ## P6.1 checks
 

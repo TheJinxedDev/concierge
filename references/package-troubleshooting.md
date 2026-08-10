@@ -4,7 +4,7 @@
 
 ## No direct install URL
 
-This checkout currently has no configured Git remote. A raw `SKILL.md` URL cannot be resolved honestly until a repository and versioned ref exist. Do not invent a GitHub owner, repository, tag, or URL. Use the manifest's `raw_skill_url: unresolved` state.
+The repository has a private versioned ref, but anonymous raw `SKILL.md` installation is not claimed until the repository is public. Do not invent a different GitHub owner, repository, tag, or URL. Keep the manifest's `raw_skill_url: unresolved` and `installable_claim: false` state until public visibility is intentionally enabled.
 
 ## Skill path versus profile distribution
 

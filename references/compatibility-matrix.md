@@ -1,6 +1,6 @@
 # Concierge package compatibility matrix
 
-**Artifact status:** P6.1 snapshot; not release-ready.
+**Artifact status:** rough `0.1.16-dev` semantic beta private prerelease; exact Windows package gate verified; Linux untested.
 
 The canonical detailed matrix is [`docs/data-contract/compatibility-matrix.md`](../docs/data-contract/compatibility-matrix.md). This package copy keeps the direct-skill bundle's important gates visible.
 
@@ -24,4 +24,4 @@ Migrations 1–6 cover the current application schema; migration 5 adds typed ca
 
 ## Boundary
 
-This matrix is not release-ready evidence. It does not prove package install, safe setup, upgrade/uninstall, cron execution, clean-room isolation, or fresh-agent behavior. Those are later P6.2–P8 gates.
+This matrix is descriptive package material, not standalone evidence. The exact Windows package, setup, cron, MCP, clean-room, and bounded fresh-agent checks are recorded separately in the publication receipts; Linux remains untested.

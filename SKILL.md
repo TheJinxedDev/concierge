@@ -287,10 +287,10 @@ Do not treat a successful MCP tool registration as proof that a write is canonic
 
 This root skill is the rough `concierge` semantic-beta direct Hermes skill, version `0.1.16-dev`. It includes the package lifecycle, semantic MCP reads, ended-session observation capture, three independently explicit package-owned cron choices, and the separate `0.85` automatic-promotion path. Capture is proposal-first and promotion emits canonical before/after receipts; no active-session observer or generated numeric taste score is included. Historical P6.5 smoke evidence is not the beta verdict. Installation never silently targets the default profile; the onboarding section is the explicit, user-directed path for setup and consent.
 
-The package manifest is [`manifest.yaml`](manifest.yaml). The direct-install URL is deliberately unresolved until this repository has a real remote and versioned ref; do not replace the placeholder with an invented URL. A future supported installation will use Hermes' direct URL form:
+The package manifest is [`manifest.yaml`](manifest.yaml). This private prerelease has a versioned repository ref, but `raw_skill_url: unresolved` and `installable_claim: false` remain deliberate until the repository is public; do not treat private raw access as anonymous installation. Once public, the supported direct installation will use:
 
 ```text
-hermes skills install <versioned-raw-SKILL.md-url>
+hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
 ```
 
 For a read-only local preflight from the repository root:

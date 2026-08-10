@@ -90,9 +90,9 @@ release_evidence:
   report_schema: "1"
   install_report: install-report.json
   local_smoke_status: complete
-  public_url_status: unresolved
+  public_url_status: private_repository
   smoke_report: BETA_SMOKE_EVIDENCE.json
-  linux_scope: ubuntu-wsl2-smoke-only
+  linux_scope: untested-theoretical-only
 
 compatibility:
   python: ">=3.11"
