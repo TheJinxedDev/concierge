@@ -39,11 +39,59 @@ completed-session capture pass, and a later automatic promotion pass. A `false`
 answer is persisted just as deliberately as a `true` answer. No active-session
 observer is created by any lane.
 
-### 1. Resolve the installed runtime and profile data root
+### 1. Fetch and install the immutable runtime
 
-Read the package `installation.json` from the installed package envelope. Use
-its `runtime_path` as `<CONCIERGE_INSTALL>`, read its `artifact_directory`
-(currently `artifact`), and set `<CONCIERGE_RUNTIME>` to that child directory.
+The direct Hermes skill installer places this onboarding file plus its
+references and helper scripts in the selected profile. It does **not** copy the
+full backend/runtime artifact into the skill directory. Do not run the helper
+scripts from that support-only tree and do not silently invent a runtime path.
+
+Fetch the exact versioned release archive and its `.sha256` sidecar from the
+public Concierge repository:
+
+```text
+https://github.com/TheJinxedDev/concierge/releases/download/v0.1.16-dev/CONCIERGE_0.1.16-dev_PUBLICATION.zip
+https://github.com/TheJinxedDev/concierge/releases/download/v0.1.16-dev/CONCIERGE_0.1.16-dev_PUBLICATION.zip.sha256
+```
+
+Keep both files in a fresh, profile-scoped staging directory. Verify the
+archive against the sidecar before extraction, reject absolute/traversal
+members and symlinks, and stop on any checksum or archive-inventory mismatch.
+Extract the archive to `<CONCIERGE_SOURCE>`; it must contain `manifest.yaml`,
+`pyproject.toml`, `backend/`, `scripts/concierge_package.py`, and `uv.lock`.
+The archive is the source passed to the package lifecycle below, not the
+support-only tree created by `hermes skills install`.
+
+Hermes may show a community-skill security `CAUTION` for the package's bounded
+`os.environ` sandboxing and `uv run` commands. A blocked scan is not an install
+receipt. Review the exact versioned URL and archive checksum first; only use
+the installer's explicit `--force` override for this verified public candidate,
+never for an unknown source, and retain the scan result in the disposable test
+receipt.
+
+Resolve the selected profile's absolute `HERMES_HOME` and `LOCALAPPDATA` and
+choose an external `<CONCIERGE_ENV>` sibling path. Then install the verified
+artifact into those explicit targets:
+
+```text
+UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_SOURCE> --project <CONCIERGE_SOURCE> python scripts/concierge_package.py install --artifact-root <CONCIERGE_SOURCE> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+```
+
+The installer safely adopts the already-installed raw-skill support tree only
+when its exact owned files and content hash match the archive; any edit, extra
+file, missing file, symlink, or unrelated existing runtime is a conflict and
+must stop. Read the JSON receipt and require `action=installed` (or an exact
+owned `noop`), the expected artifact hash, and the reported runtime path. The
+runtime is `<CONCIERGE_INSTALL>\\artifact`, where `<CONCIERGE_INSTALL>` is the
+versioned path reported by the installer beneath
+`<LOCALAPPDATA>\\Concierge\\packages\\0.1.16-dev`.
+
+### 2. Resolve the installed runtime and profile data root
+
+Read the package `installation.json` from `<CONCIERGE_INSTALL>`. Verify its
+artifact hash and file list against the preflight/install receipt, read its
+`artifact_directory` (currently `artifact`), and set `<CONCIERGE_RUNTIME>` to
+that child directory.
 Verify that `<CONCIERGE_RUNTIME>` contains `pyproject.toml`, `backend/`, and
 `scripts/concierge_setup.py` before running anything. Resolve the active
 profile's Hermes home from `HERMES_HOME` or `hermes config path`; set
@@ -323,3 +371,10 @@ Read the bounded support documents before implementing later setup slices:
 - [`references/compatibility-matrix.md`](references/compatibility-matrix.md)
 - [`references/scoring-disabled-policy.md`](references/scoring-disabled-policy.md)
 - [`references/known-limitations.md`](references/known-limitations.md)
+
+The direct skill installer must also fetch the package-owned execution helpers
+used by the verified runtime bootstrap and synthetic acceptance path:
+
+- [`scripts/run_automatic_capture.py`](scripts/run_automatic_capture.py)
+- [`scripts/run_automatic_promotion.py`](scripts/run_automatic_promotion.py)
+- [`scripts/run_beta_smoke.py`](scripts/run_beta_smoke.py)

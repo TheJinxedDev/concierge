@@ -236,6 +236,27 @@ def _skill_files(artifact: ArtifactIdentity) -> tuple[str, ...]:
     )
 
 
+def _skill_tree_matches_artifact(skill_path: Path, artifact: ArtifactIdentity) -> bool:
+    """Allow an exact raw-skill bootstrap tree to be adopted safely.
+
+    ``hermes skills install <raw SKILL.md>`` materializes only the skill and
+    support roots.  The versioned package installer may then add the complete
+    runtime, but only when that pre-existing tree is byte-for-byte identical to
+    the artifact's owned skill files.  Any user edit, extra file, symlink, or
+    missing file keeps the fail-closed conflict behavior.
+    """
+
+    if not skill_path.is_dir():
+        return False
+    _assert_no_symlink_component(skill_path, "existing skill target")
+    skill_files = _skill_files(artifact)
+    return (
+        _tree_files(skill_path) == skill_files
+        and _hash_files(skill_path, skill_files)
+        == _hash_files(artifact.root, skill_files)
+    )
+
+
 def _hash_files(root: Path, files: tuple[str, ...]) -> str:
     digest = hashlib.sha256()
     for relative_path in files:
@@ -524,11 +545,16 @@ def install_artifact(
         _runtime_path(local_appdata, artifact.version), "runtime target"
     )
     skill_path = _safe_target(_skill_path(hermes_home, artifact.name), "skill target")
+    reusable_raw_skill = (
+        not runtime_path.exists()
+        and _skill_tree_matches_artifact(skill_path, artifact)
+    )
     if runtime_path.exists() or skill_path.exists():
         existing = _read_installation(runtime_path, skill_path)
         if existing is not None and _record_matches_artifact(existing, artifact):
             return LifecycleResult(LifecycleAction.NOOP, "exact package installation already exists", False, existing)
-        return _conflict("package or skill path already exists but is not an exact owned installation", existing)
+        if not reusable_raw_skill:
+            return _conflict("package or skill path already exists but is not an exact owned installation", existing)
 
     token = uuid.uuid4().hex
     runtime_stage = runtime_path.parent / f"{STAGING_PREFIX}{token}"
@@ -547,12 +573,16 @@ def install_artifact(
             expected_source_identity=_path_identity(runtime_stage),
         )
         runtime_promoted = True
-        _promote(
-            skill_stage,
-            skill_path,
-            expected_source_identity=_path_identity(skill_stage),
-        )
-        skill_promoted = True
+        if reusable_raw_skill:
+            _remove_stage_marker(skill_stage)
+            _remove_tree(skill_stage)
+        else:
+            _promote(
+                skill_stage,
+                skill_path,
+                expected_source_identity=_path_identity(skill_stage),
+            )
+            skill_promoted = True
         _remove_stage_marker(runtime_path)
         _remove_stage_marker(skill_path)
         installation = PackageInstallation(
