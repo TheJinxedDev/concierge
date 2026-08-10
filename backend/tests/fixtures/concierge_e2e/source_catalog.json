@@ -1,0 +1,84 @@
+{
+  "catalog_schema_version": "1.0",
+  "catalog_id": "concierge-p2-2",
+  "source_class": "synthetic_fixture",
+  "cases": [
+    {
+      "case_id": "known-canonical-title",
+      "source_class": "synthetic_fixture",
+      "source_ref": "synthetic://concierge-e2e/p2-2-session-001/message-001",
+      "session_ref": "p2-2-session-001",
+      "message_ref": "message-001",
+      "source_ref_semantics": "normalized",
+      "content_hash": "2a006ca3149b6874e457352bbe0ca799b75f138138dd84be2524cfc05e45502f",
+      "source_timestamp": "2026-08-02T12:00:00-04:00",
+      "capture_timestamp": "2026-08-02T12:01:00-04:00",
+      "quoted_evidence": "I finished watching Echoes of Glass.",
+      "evidence_form": "quoted",
+      "attribution": "user",
+      "provenance": "user_explicit",
+      "identity_confidence": 1.0,
+      "candidate": {
+        "title": "Echoes of Glass",
+        "category": "movie",
+        "status": "finished"
+      },
+      "expected": {
+        "resolution": "canonical",
+        "canonical_id": "movie-echoes-of-glass-fixture",
+        "match": "title"
+      }
+    },
+    {
+      "case_id": "unique-canonical-alias",
+      "source_class": "synthetic_fixture",
+      "source_ref": "synthetic://concierge-e2e/p2-2-session-001/message-002",
+      "session_ref": "p2-2-session-001",
+      "message_ref": "message-002",
+      "source_ref_semantics": "normalized",
+      "content_hash": "0e72f76225e9163644a2d0b77be27c0e3070196e185ef0800af3921bfd26c4cd",
+      "source_timestamp": "2026-08-02T12:02:00-04:00",
+      "capture_timestamp": "2026-08-02T12:03:00-04:00",
+      "quoted_evidence": "I rewatched Glass Echoes last night.",
+      "evidence_form": "quoted",
+      "attribution": "user",
+      "provenance": "user_explicit",
+      "identity_confidence": 0.98,
+      "candidate": {
+        "title": "Glass Echoes",
+        "category": "movie",
+        "status": "rewatched"
+      },
+      "expected": {
+        "resolution": "canonical",
+        "canonical_id": "movie-echoes-of-glass-fixture",
+        "match": "unique_alias"
+      }
+    },
+    {
+      "case_id": "new-unambiguous-title",
+      "source_class": "synthetic_fixture",
+      "source_ref": "synthetic://concierge-e2e/p2-2-session-001/message-003",
+      "session_ref": "p2-2-session-001",
+      "message_ref": "message-003",
+      "source_ref_semantics": "normalized",
+      "content_hash": "d62f1785f83e8feb14137a764999be27baca43d0a89fdc2ad9768aa53979c680",
+      "source_timestamp": "2026-08-02T12:04:00-04:00",
+      "capture_timestamp": "2026-08-02T12:05:00-04:00",
+      "quoted_evidence": "I finished watching The Glass Cartographer.",
+      "evidence_form": "quoted",
+      "attribution": "user",
+      "provenance": "user_explicit",
+      "identity_confidence": 0.99,
+      "candidate": {
+        "title": "The Glass Cartographer",
+        "category": "movie",
+        "status": "finished"
+      },
+      "expected": {
+        "resolution": "new_unambiguous",
+        "canonical_id": null
+      }
+    }
+  ]
+}

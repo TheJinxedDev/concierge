@@ -1,0 +1,33 @@
+# Concierge package troubleshooting
+
+**P6 warning:** Mutating commands must use explicit temporary targets. The package CLI's `preflight` is read-only; `install`/`upgrade`/`uninstall` own only package files; Hermes MCP/cron, capture state, and the durable library remain separate gates.
+
+## Private direct install URL
+
+The versioned raw `SKILL.md` URL is:
+
+```text
+https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md
+```
+
+This repository is private, so the URL requires GitHub access for the Hermes process. Do not replace it with an unversioned branch URL or claim anonymous public installation.
+
+## Skill path versus profile distribution
+
+The intended product is a direct `concierge` skill added to an existing profile. A Hermes profile distribution is a different product that owns a new profile's SOUL, skills, MCP, and cron configuration. Do not use it as a shortcut for this package.
+
+## Installed skill but missing support material
+
+Check that the installed artifact came from a versioned `SKILL.md` whose referenced `references/` files were present at the same ref. Do not copy support files from a different version or silently fall back to the working checkout.
+
+## MCP confusion
+
+A successful MCP connection proves transport and discovery only. Preserve the `taste_database` key, verify the exact nine beta tools, and stop on a same-name/different-command conflict. Do not replace an existing entry to make setup green.
+
+## Cron confusion
+
+A listed, enabled, or terminally successful cron record is not proof of capture. Compare exact ownership/fingerprints, run report, cursor/action state, pending-proposal readback, and canonical before/after state. Never adopt the unrelated legacy Concierge-named records found in the default profile.
+
+## Test confusion
+
+A green local suite proves only the tested checkout. It does not prove package installation, clean-room isolation, fresh-agent tool use, or safe uninstall. Those are separate P6.5/P7 gates.

@@ -1,0 +1,1 @@
+"""Taste database application package."""
