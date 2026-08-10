@@ -20,6 +20,7 @@ from pathlib import Path
 import re
 import shutil
 import sys
+import time
 import uuid
 
 from .package_preflight import ArtifactIdentity, PackageArtifactError, load_artifact
@@ -470,12 +471,22 @@ def _atomic_move_no_replace(
         move_file.restype = ctypes.c_int
         # MOVEFILE_COPY_ALLOWED is safe here; deliberately omit
         # MOVEFILE_REPLACE_EXISTING so a destination race fails closed.
-        if not move_file(str(source), str(target), 0x00000002):
+        # Windows can hold a just-closed uv/Python file handle briefly. Retry
+        # only ERROR_ACCESS_DENIED, rechecking source identity on every try;
+        # all other errors and a final denial remain fail-closed.
+        access_denied_retries = (0.05, 0.1, 0.25, 0.5, 1.0)
+        for retry_delay in (0.0, *access_denied_retries):
+            if retry_delay:
+                time.sleep(retry_delay)
+            if expected_source_identity is not None:
+                _assert_path_identity(source, expected_source_identity)
+            if move_file(str(source), str(target), 0x00000002):
+                return
             error = ctypes.get_last_error()
-            raise PackageArtifactError(
-                f"atomic no-replace move failed ({error}): {source} -> {target}"
-            )
-        return
+            if error != 5 or retry_delay == access_denied_retries[-1]:
+                raise PackageArtifactError(
+                    f"atomic no-replace move failed ({error}): {source} -> {target}"
+                )
 
     try:
         libc = ctypes.CDLL(None, use_errno=True)
@@ -743,7 +754,7 @@ def uninstall_artifact(
         return _conflict("package runtime is present without a readable ownership manifest")
     if not _record_matches_hash(installation, expected_artifact_hash):
         return _conflict("installed artifact hash does not match the requested uninstall", installation)
-    if _tree_files(skill_path) != installation.skill_files or _tree_hash(skill_path) != installation.skill_tree_hash:
+    if _tree_files(skill_path) != installation.skill_files or _skill_tree_hash(skill_path, installation.skill_files) != installation.skill_tree_hash:
         return _conflict("installed skill tree has drifted; refusing to delete user changes", installation)
     artifact_root = runtime_path / ARTIFACT_DIRECTORY
     if (
