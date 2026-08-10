@@ -241,9 +241,10 @@ def _skill_tree_matches_artifact(skill_path: Path, artifact: ArtifactIdentity) -
 
     ``hermes skills install <raw SKILL.md>`` materializes only the skill and
     support roots.  The versioned package installer may then add the complete
-    runtime, but only when that pre-existing tree is byte-for-byte identical to
-    the artifact's owned skill files.  Any user edit, extra file, symlink, or
-    missing file keeps the fail-closed conflict behavior.
+    runtime, but only when that pre-existing tree has the same owned files and
+    content, allowing only platform newline normalization for UTF-8 text files.
+    Any user edit, extra file, symlink, or missing file keeps the fail-closed
+    conflict behavior.
     """
 
     if not skill_path.is_dir():
@@ -252,8 +253,8 @@ def _skill_tree_matches_artifact(skill_path: Path, artifact: ArtifactIdentity) -
     skill_files = _skill_files(artifact)
     return (
         _tree_files(skill_path) == skill_files
-        and _hash_files(skill_path, skill_files)
-        == _hash_files(artifact.root, skill_files)
+        and _skill_tree_hash(skill_path, skill_files)
+        == _skill_tree_hash(artifact.root, skill_files)
     )
 
 
@@ -262,6 +263,31 @@ def _hash_files(root: Path, files: tuple[str, ...]) -> str:
     for relative_path in files:
         path = root / Path(relative_path)
         data = path.read_bytes()
+        encoded_path = relative_path.encode("utf-8")
+        digest.update(len(encoded_path).to_bytes(4, "big"))
+        digest.update(encoded_path)
+        digest.update(len(data).to_bytes(8, "big"))
+        digest.update(data)
+    return "sha256:" + digest.hexdigest()
+
+
+def _skill_tree_hash(root: Path, files: tuple[str, ...]) -> str:
+    """Hash skill support content with only newline normalization.
+
+    Hermes may materialize a raw Markdown/Python support tree using Windows
+    CRLF line endings even when the immutable archive stores LF.  Normalize
+    only UTF-8 text newlines so that this transport detail is not mistaken for
+    user drift; all filenames and all non-newline content remain exact.
+    """
+
+    digest = hashlib.sha256()
+    for relative_path in files:
+        path = root / Path(relative_path)
+        data = path.read_bytes()
+        try:
+            data = data.decode("utf-8").replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+        except UnicodeDecodeError:
+            pass
         encoded_path = relative_path.encode("utf-8")
         digest.update(len(encoded_path).to_bytes(4, "big"))
         digest.update(encoded_path)
@@ -395,7 +421,7 @@ def _record_matches_artifact(
         return False
     if _tree_files(installation.skill_path) != installation.skill_files:
         return False
-    return _tree_hash(installation.skill_path) == installation.skill_tree_hash
+    return _skill_tree_hash(installation.skill_path, installation.skill_files) == installation.skill_tree_hash
 
 
 def _record_matches_hash(installation: PackageInstallation, expected_hash: str | None) -> bool:
@@ -419,7 +445,7 @@ def _stage_artifact(
         artifact_hash=artifact.artifact_hash,
         artifact_files=artifact.files,
         skill_files=skill_files,
-        skill_tree_hash=_hash_files(skill_stage, skill_files),
+        skill_tree_hash=_skill_tree_hash(skill_stage, skill_files),
         runtime_path=runtime_stage,
         skill_path=skill_stage,
     )
@@ -629,7 +655,7 @@ def upgrade_artifact(
         return _conflict("prior package artifact hash does not match the installed manifest", previous)
     if not previous.skill_path.exists() or _tree_files(previous.skill_path) != previous.skill_files:
         return _conflict("prior installed skill tree has drifted", previous)
-    if _tree_hash(previous.skill_path) != previous.skill_tree_hash:
+    if _skill_tree_hash(previous.skill_path, previous.skill_files) != previous.skill_tree_hash:
         return _conflict("prior installed skill content has drifted", previous)
     previous_artifact_root = previous.runtime_path / ARTIFACT_DIRECTORY
     if _runtime_artifact_files(previous_artifact_root) != previous.artifact_files:
