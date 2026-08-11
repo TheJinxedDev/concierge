@@ -64,6 +64,24 @@ class AutomationPreferences:
             "schema_version": "1.1",
         }
 
+    def same_decision_as(self, other: "AutomationPreferences") -> bool:
+        """Compare user choices without treating a retry timestamp as a conflict."""
+        return (
+            self.decision_id,
+            self.backlog_cron_enabled,
+            self.recent_capture_cron_enabled,
+            self.promotion_cron_enabled,
+            self.backlog_policy,
+            self.favorite_media_interview,
+        ) == (
+            other.decision_id,
+            other.backlog_cron_enabled,
+            other.recent_capture_cron_enabled,
+            other.promotion_cron_enabled,
+            other.backlog_policy,
+            other.favorite_media_interview,
+        )
+
     @classmethod
     def from_payload(cls, payload: object) -> "AutomationPreferences":
         if not isinstance(payload, dict):
@@ -115,7 +133,7 @@ class AutomationPreferencesStore:
     def save(self, preferences: AutomationPreferences) -> AutomationPreferences:
         existing = self.read()
         if existing is not None and existing.decision_id == preferences.decision_id:
-            if existing != preferences:
+            if not existing.same_decision_as(preferences):
                 raise ValueError("decision id already records different preferences")
             return existing
 

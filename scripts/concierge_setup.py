@@ -120,8 +120,13 @@ def save_automation_preferences(args: argparse.Namespace) -> dict[str, object]:
         backlog_policy=BacklogPolicy(args.backlog_policy),
         favorite_media_interview=args.favorite_media_interview == "yes",
     )
-    stored = AutomationPreferencesStore(data_directory / "automation-preferences.json").save(
-        preferences
+    store = AutomationPreferencesStore(data_directory / "automation-preferences.json")
+    existing = store.read()
+    stored = store.save(preferences)
+    reused_existing_decision = (
+        existing is not None
+        and existing.decision_id == stored.decision_id
+        and existing.same_decision_as(stored)
     )
     plans = build_automation_job_specs(
         stored,
@@ -130,8 +135,12 @@ def save_automation_preferences(args: argparse.Namespace) -> dict[str, object]:
         data_directory=data_directory,
     )
     return {
-        "action": "automation_preferences_saved",
-        "mutated": True,
+        "action": (
+            "automation_preferences_reused"
+            if reused_existing_decision
+            else "automation_preferences_saved"
+        ),
+        "mutated": not reused_existing_decision,
         "runtime_root": str(runtime_root),
         "data_directory": str(data_directory),
         "preferences_path": str(data_directory / "automation-preferences.json"),

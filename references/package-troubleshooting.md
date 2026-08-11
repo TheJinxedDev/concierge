@@ -4,17 +4,20 @@
 
 ## Public direct install URL
 
-The public versioned raw skill URL is:
+The current public versioned raw skill URL is:
 
-`https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev/SKILL.md`
+`https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.1/SKILL.md`
 
 The public rough-beta release archive and checksum sidecar are linked from the
-`v0.1.16-dev` release. Verify that exact archive and its SHA-256 sidecar before
+`v0.1.16-dev.1` release. Verify that exact archive and its SHA-256 sidecar before
 extraction; do not substitute a branch, a working checkout, or a different
 owner/repository/tag. A community-skill scanner may require the installer's
 explicit `--force` override after the verified URL and checksum have been
 reviewed. That override is for this known candidate only, not for an unknown
 source.
+
+The older `v0.1.16-dev` prerelease is explicitly superseded and must not be
+used for fresh setup.
 
 ## Skill path versus profile distribution
 
@@ -35,3 +38,12 @@ A listed, enabled, or terminally successful cron record is not proof of capture.
 ## Test confusion
 
 A green local suite proves only the tested checkout. It does not prove package installation, clean-room isolation, fresh-agent tool use, or safe uninstall. Those are separate P6.5/P7 gates.
+
+## Windows uninstall from an installed runtime
+
+Change the terminal working directory to the original source checkout before
+running `scripts/concierge_package.py uninstall`; do not run it from the
+installed `runtime_path/artifact` directory. On Windows, `uv` can keep a handle
+open inside the runtime it launched, so Concierge fails closed with a clear
+instruction instead of risking a partial delete. The command still needs the
+original explicit profile paths and install-receipt artifact hash.

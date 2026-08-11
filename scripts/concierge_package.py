@@ -19,7 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
 from app.package_lifecycle import (  # noqa: E402
+    ARTIFACT_DIRECTORY,
     LifecycleAction,
+    _runtime_path,
     install_artifact,
     recover_interrupted_install,
     uninstall_artifact,
@@ -64,6 +66,10 @@ def _installation_payload(result) -> dict[str, object]:
                 "artifact_files": list(installation.artifact_files),
                 "skill_files": list(installation.skill_files),
                 "runtime_path": str(installation.runtime_path),
+                "artifact_directory": ARTIFACT_DIRECTORY,
+                "runtime_project_path": str(
+                    installation.runtime_path / ARTIFACT_DIRECTORY
+                ),
                 "skill_path": str(installation.skill_path),
             }
         )
@@ -97,6 +103,27 @@ def _require_mutation_paths(args: argparse.Namespace) -> tuple[Path, Path]:
             "mutating package commands require explicit --hermes-home and --local-appdata"
         )
     return hermes_home, local_appdata
+
+
+def _is_within(path: Path, parent: Path) -> bool:
+    try:
+        path.resolve(strict=False).relative_to(parent.resolve(strict=False))
+    except ValueError:
+        return False
+    return True
+
+
+def _assert_uninstall_launcher_is_outside_runtime(
+    local_appdata: Path, version: str
+) -> None:
+    """Avoid Windows handles held by ``uv`` over the runtime being removed."""
+
+    runtime_path = _runtime_path(local_appdata, version)
+    if _is_within(ROOT, runtime_path) or _is_within(Path.cwd(), runtime_path):
+        raise ValueError(
+            "uninstall must be launched from a checkout outside the installed runtime; "
+            "return to the original source checkout before retrying"
+        )
 
 
 def _add_artifact_argument(parser: argparse.ArgumentParser) -> None:
@@ -175,6 +202,7 @@ def main(argv: list[str] | None = None) -> int:
                 previous_artifact_hash=args.previous_artifact_hash,
             )
         elif args.command == "uninstall":
+            _assert_uninstall_launcher_is_outside_runtime(local_appdata, args.version)
             result = uninstall_artifact(
                 hermes_home,
                 local_appdata,

@@ -135,6 +135,8 @@ def build_mcp_server_spec(
         environment = (
             f"UV_PROJECT_ENVIRONMENT={environment_root}",
             "PYTHONDONTWRITEBYTECODE=1",
+            "PYTHONPATH=",
+            "VIRTUAL_ENV=",
         )
     return McpServerSpec(
         name=MCP_SERVER_NAME,
@@ -158,11 +160,12 @@ def classify_mcp_record(record: dict[str, Any], spec: McpServerSpec) -> McpOwner
             f"{key}={record_environment[key]}" for key in sorted(record_environment)
         )
     else:
-        normalized_environment = tuple(record_environment)
+        normalized_environment = tuple(sorted(record_environment))
+    expected_environment = tuple(sorted(spec.environment))
     if (
         record.get("command") == spec.command
         and tuple(record.get("args") or ()) == spec.args
-        and normalized_environment == spec.environment
+        and normalized_environment == expected_environment
     ):
         return McpOwnership.EXACT
     return McpOwnership.FINGERPRINT_CONFLICT

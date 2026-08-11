@@ -100,8 +100,10 @@ Concierge is designed to integrate with an existing Hermes profile rather than i
 
 ## Current beta status
 
-The current `0.1.16-dev` source-branch candidate has a local disposable
-Windows smoke of package install/removal, MCP discovery, native Hermes cron
+The initial `0.1.16-dev` prerelease is superseded because it carried an older
+setup path. The current `0.1.16-dev.1` candidate uses native Hermes surfaces,
+clears inherited Python-runtime paths, and has a local disposable Windows smoke
+of package install/removal, MCP discovery, native Hermes cron
 creation/readback/removal, explicit automation choices, and empty-inbox
 promotion. A full fresh-agent walkthrough from this public link is the next
 test—not a claim already being made here.

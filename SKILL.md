@@ -1,7 +1,7 @@
 ---
 name: concierge
 description: Set up and operate Concierge, a local-first semantic media archive with proposal-first capture and factual MCP queries.
-version: 0.1.16-dev
+version: 0.1.16-dev.1
 ---
 
 # Concierge public-beta onboarding
@@ -32,6 +32,24 @@ prodded, and reported on—not mistaken for finished software.
 The repository checkout is the beta runtime. The direct skill alone is not a
 second copy of Hermes and does not contain a hidden Hermes backend.
 
+### Start with a clean Python environment
+
+Before any `uv run` command, clear inherited `PYTHONPATH` and `VIRTUAL_ENV`.
+They can point at Hermes' own Python runtime and corrupt Concierge's separate
+environment. In a POSIX-compatible Hermes terminal, run:
+
+```text
+unset PYTHONPATH VIRTUAL_ENV
+```
+
+In PowerShell, run:
+
+```text
+Remove-Item Env:PYTHONPATH,Env:VIRTUAL_ENV -ErrorAction SilentlyContinue
+```
+
+Do this once per terminal session before continuing below.
+
 1. Work in the user-selected Hermes profile. If the target profile is unclear,
    ask; never assume or mutate another/default profile.
 2. Clone or download the repository into a fresh temporary directory. Record the
@@ -56,12 +74,15 @@ second copy of Hermes and does not contain a hidden Hermes backend.
    UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked python scripts/concierge_package.py install --artifact-root . --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
    ```
 
-   Require an `installed` or exact-owned `noop` JSON receipt. Keep its reported
-   install/runtime path and artifact hash for uninstall or feedback.
+   Require an `installed` or exact-owned `noop` JSON receipt. Keep its
+   `runtime_path` and artifact hash for uninstall or feedback. For every
+   `uv --directory`/`--project` command below, set `<CONCIERGE_PACKAGE_ROOT>`
+   to the receipt's `runtime_project_path`, which is the installed
+   `runtime_path/artifact` directory—not the versioned ownership directory.
 6. Initialize an empty, profile-scoped Concierge library:
 
    ```text
-   UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_setup.py initialize --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA> --environment-dir <CONCIERGE_ENV>
+   UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_PACKAGE_ROOT> --project <CONCIERGE_PACKAGE_ROOT> python scripts/concierge_setup.py initialize --runtime-root <CONCIERGE_PACKAGE_ROOT> --data-dir <CONCIERGE_DATA> --environment-dir <CONCIERGE_ENV>
    ```
 
    This creates only the selected library. It does **not** inspect history,
@@ -72,13 +93,15 @@ second copy of Hermes and does not contain a hidden Hermes backend.
 Use the exact command/args returned in the setup receipt. Its expected shape is:
 
 ```text
-HERMES_HOME=<HERMES_HOME> hermes mcp add taste_database --command uv --env UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> PYTHONDONTWRITEBYTECODE=1 --args run --locked --directory <CONCIERGE_RUNTIME>/backend --project <CONCIERGE_RUNTIME> python -m app.mcp_entry --data-dir <CONCIERGE_DATA>
+HERMES_HOME=<HERMES_HOME> hermes mcp add taste_database --command uv --env UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> PYTHONDONTWRITEBYTECODE=1 PYTHONPATH= VIRTUAL_ENV= --args run --locked --directory <CONCIERGE_PACKAGE_ROOT>/backend --project <CONCIERGE_PACKAGE_ROOT> python -m app.mcp_entry --data-dir <CONCIERGE_DATA>
 HERMES_HOME=<HERMES_HOME> hermes mcp test taste_database
 ```
 
 `hermes mcp add` performs discovery and asks for a confirmation before saving
 the entry. Confirm only after its command, profile-scoped paths, and nine-tool
-list match the setup receipt.
+list match the setup receipt. This is intentionally interactive: if the agent's
+terminal cannot answer the confirmation prompt, stop and ask the user rather
+than piping an automatic approval or reporting a false setup failure.
 
 If a same-name MCP entry already exists, inspect it first. An exact entry can be
 reused after a successful test; different command, arguments, environment, or
@@ -113,11 +136,16 @@ missing answer rather than guessing a mode.
 Persist the answers and receive native Hermes job plans:
 
 ```text
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_setup.py save-automation-preferences --runtime-root <CONCIERGE_RUNTIME> --data-dir <CONCIERGE_DATA> --decision-id <DECISION_ID> --backlog-cron <yes|no> --recent-capture-cron <yes|no> --promotion-cron <yes|no> --backlog-policy <process_existing|start_fresh> --favorite-media-interview <yes|no> --confirmation "I explicitly choose Concierge automation"
+UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_PACKAGE_ROOT> --project <CONCIERGE_PACKAGE_ROOT> python scripts/concierge_setup.py save-automation-preferences --runtime-root <CONCIERGE_PACKAGE_ROOT> --data-dir <CONCIERGE_DATA> --decision-id <DECISION_ID> --backlog-cron <yes|no> --recent-capture-cron <yes|no> --promotion-cron <yes|no> --backlog-policy <process_existing|start_fresh> --favorite-media-interview <yes|no> --confirmation "I explicitly choose Concierge automation"
 ```
 
 That command stores Concierge preferences and **returns plans only**. It must
 not create or modify Hermes jobs itself.
+
+Reusing a decision ID after an interrupted command is safe only when every
+choice is unchanged: the helper returns the original decision as an exact
+no-op. A reused ID with changed choices is a conflict; choose a fresh ID only
+after explaining and reconfirming the changed choices.
 
 Create each explicitly approved plan through the active Hermes application's
 native `cronjob` tool, attaching the `concierge` skill and returned workdir. If
@@ -162,7 +190,11 @@ remove its exact native job after checking the receipt.
 Use the artifact hash from the install receipt and target the same explicit
 profile paths. This removes only the package-owned runtime and Concierge skill
 files; it does not delete the user library, MCP entry, or Hermes jobs silently.
+On Windows, do **not** run uninstall from `<CONCIERGE_PACKAGE_ROOT>`: `uv` can
+keep a handle inside the runtime that it is about to remove. Change the
+terminal's working directory back to the original `<SOURCE_CHECKOUT>` used for
+installation (outside the installed runtime) before running this command.
 
 ```text
-UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <CONCIERGE_RUNTIME> --project <CONCIERGE_RUNTIME> python scripts/concierge_package.py uninstall --version 0.1.16-dev --expected-artifact-hash <INSTALL_RECEIPT_HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked --directory <SOURCE_CHECKOUT> --project <SOURCE_CHECKOUT> python scripts/concierge_package.py uninstall --version 0.1.16-dev.1 --expected-artifact-hash <INSTALL_RECEIPT_HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
 ```

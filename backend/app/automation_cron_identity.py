@@ -112,10 +112,10 @@ This job is proposal-first capture only. It does not run automatic promotion.
 
 
 def _promotion_instructions(runtime_root: Path | None, data_directory: Path | None) -> str:
-    command = "UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked python scripts/run_automatic_promotion.py --data-dir <CONCIERGE_DATA>"
+    command = "env -u PYTHONPATH -u VIRTUAL_ENV UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked python scripts/run_automatic_promotion.py --data-dir <CONCIERGE_DATA>"
     if runtime_root is not None:
         command = (
-            "UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked "
+            "env -u PYTHONPATH -u VIRTUAL_ENV UV_PROJECT_ENVIRONMENT=<CONCIERGE_ENV> uv run --locked "
             f'--directory "{runtime_root}" --project "{runtime_root}" python '
             f'"{runtime_root / "scripts" / "run_automatic_promotion.py"}" '
             f'--data-dir "{data_directory or "<CONCIERGE_DATA>"}"'

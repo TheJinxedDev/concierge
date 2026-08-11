@@ -1,6 +1,6 @@
 # Concierge package compatibility matrix
 
-**Artifact status:** rough `0.1.16-dev` semantic beta private prerelease; exact Windows package gate verified; Linux untested.
+**Artifact status:** rough `0.1.16-dev.1` semantic beta prerelease; exact Windows package gate verified; Linux untested.
 
 The canonical detailed matrix is [`docs/data-contract/compatibility-matrix.md`](../docs/data-contract/compatibility-matrix.md). This package copy keeps the direct-skill bundle's important gates visible.
 
