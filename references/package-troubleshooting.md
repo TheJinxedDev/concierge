@@ -28,6 +28,19 @@ Check that the installed artifact came from a versioned `SKILL.md` whose referen
 
 A successful MCP connection proves transport and discovery only. Preserve the `taste_database` key, verify the exact nine beta tools, and stop on a same-name/different-command conflict. Do not replace an existing entry to make setup green.
 
+### Windows PTY approval appears stuck
+
+Keep the explicit approval gate: never pipe a blind `Y` into `hermes mcp add`.
+When an agent is driving the command through Windows ConPTY after the user has
+already approved it, send the response with CRLF (a carriage return followed by
+a line feed), not bare LF. A bare LF can echo visibly but
+not complete Python's `input()` line, so the command waits indefinitely. Use the
+required `hermes mcp list` readback as the detector: if no owned entry appears
+after a short wait, stop the stuck command and retry the same approved response
+with CRLF. If the interactive approval still hangs, run the exact `hermes mcp
+add` command in a real terminal and let the user approve it there; this preserves
+explicit consent rather than bypassing it.
+
 ## Cron confusion
 
 A listed, enabled, or terminally successful cron record is not proof of capture. Compare exact ownership/fingerprints, run report, cursor/action state, pending-proposal readback, and canonical before/after state. Never adopt the unrelated legacy Concierge-named records found in the default profile.

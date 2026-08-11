@@ -50,8 +50,16 @@ The tagged repository checkout is the runtime. Start from the immutable
    `action=concierge_ready_for_hermes_registration`; otherwise stop and report
    its reason. Keep the receipt path for verification, feedback, and uninstall.
 4. Register `initialization.mcp` using native `hermes mcp add` in a PTY-capable terminal so the user can explicitly approve the nine tools. Never pipe a
-   blind `Y`, and never trust the add command's exit code: verify the exact entry
-   with `hermes mcp list`, then require `hermes mcp test taste_database` to report exactly nine tools. A differing same-name entry is a conflict; never
+   blind `Y`. On Windows, an agent driving ConPTY must send the already-approved
+   response with CRLF (a carriage return followed by a line feed), not bare LF:
+   bare LF can echo without completing Python's `input()`
+   line, leaving `hermes mcp add` waiting forever; never trust the add command's exit code.
+   If no entry appears after a short wait, use `hermes mcp list` as the hang detector,
+   stop the stuck command, and resend the approved response with CRLF. If interactive
+   approval still hangs, have the user run that exact `hermes mcp add` command in a real
+   terminal and approve it there. Then verify the exact
+   entry with `hermes mcp list`, and require `hermes mcp test taste_database` to
+   report exactly nine tools. A differing same-name entry is a conflict; never
    overwrite it silently; start a new Hermes session before expecting the tools
    to appear in an already-running agent.
 5. **Start the Concierge UI.** Run the exact `ui.launch_command` from the setup
