@@ -47,7 +47,9 @@ The goal is simple: **make useful context easy to keep without making it mysteri
 
 Automation is optional and configured during setup. Installing Concierge does not silently enable background capture.
 
-There are three independent choices:
+There are three independent decisions. Onboarding asks them one at a time so a
+single-choice chat UI cannot accidentally turn them into mutually exclusive
+options:
 
 1. **Backlog capture**<br>
    Process existing completed conversations, or start fresh.
@@ -58,7 +60,10 @@ There are three independent choices:
 3. **Automatic promotion**<br>
    Apply the current beta `0.85` promotion rubric to eligible pending proposals.
 
-You can use Concierge completely manually, let it collect proposals for review, or enable automatic promotion as well.
+Automatic promotion is offered only after at least one capture source is
+enabled; otherwise there would be nothing for it to promote. You can use
+Concierge completely manually, let it collect proposals for review, or enable
+automatic promotion as well.
 
 Even with everything enabled, Concierge processes completed sessions rather than watching the active conversation, and uncertain candidates remain pending.
 
@@ -96,15 +101,37 @@ three automation choices to native Hermes so those remain visible and explicit.
 Its console receipt stays short; exact inventories and cron plans are saved at
 the reported profile-scoped `receipt_path`.
 
-If you want to inspect or install the onboarding skill directly first, use the
-current immutable public-beta tag:
+For an advanced/manual skill-only inspection, use the immutable public-beta tag:
 
 ```text
-hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.2/SKILL.md
+hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.3/SKILL.md
 ```
 
-The skill then obtains the tagged repository checkout and runs one bounded
-quickstart; it does not build or search for a second Hermes installation.
+The normal path is still to give the agent this repository link. The skill-only
+command is not a substitute for the tagged runtime checkout.
+
+After quickstart succeeds, Concierge returns a receipt. MCP registration uses a
+PTY-capable terminal because Hermes asks the user to approve the nine exposed
+tools. The agent must then verify the exact record with `hermes mcp list` and
+require `hermes mcp test taste_database` to report nine tools; the add command's
+exit code alone is not proof. Start a new Hermes session before expecting those
+tools to appear in an already-running agent.
+
+Automation is then asked as three sequential yes/no questions: backlog capture,
+ongoing ended-session capture, and—only if either capture source is enabled—
+automatic promotion. The second pass reuses the receipt rather than asking for
+all profile paths again. Backlog policy is asked only when backlog capture is
+enabled.
+
+```text
+python scripts/concierge_quickstart.py --receipt <RECEIPT_PATH> --backlog-cron <yes|no> --recent-capture-cron <yes|no> --promotion-cron <yes|no> [--backlog-policy <process_existing|start_fresh>]
+```
+
+The exact installation can be checked without writing to it:
+
+```text
+python scripts/concierge_quickstart.py --verify-receipt <RECEIPT_PATH>
+```
 
 For example:
 
@@ -116,7 +143,7 @@ To uninstall package-owned files later, run this from the original checkout,
 not from inside the installed runtime:
 
 ```text
-python scripts/concierge_package.py uninstall --version 0.1.16-dev.2 --expected-artifact-hash <HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+python scripts/concierge_package.py uninstall --version 0.1.16-dev.3 --expected-artifact-hash <HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
 ```
 
 The user library, MCP entry, and Hermes jobs are separate and are never silently
@@ -125,11 +152,13 @@ deleted by this command.
 ## Current beta status
 
 The initial `0.1.16-dev` prerelease is superseded because it carried an older
-setup path. The current `0.1.16-dev.2` candidate uses native Hermes surfaces,
+setup path. The current `0.1.16-dev.3` candidate uses native Hermes surfaces,
 one profile-scoped quickstart, no upper Hermes version pin, and substantially
-less installation ceremony. It preserves the same privacy, proposal, scoring,
-and explicit automation boundaries. A full fresh-agent walkthrough from this
-tag is the next test—not a claim already being made here.
+less installation ceremony. It adds receipt-driven verification and setup reuse,
+sequential automation consent, and strict native MCP readback. It preserves the
+same privacy, proposal, scoring, and explicit automation boundaries. A full
+fresh-agent walkthrough from this tag is the next test—not a claim already being
+made here.
 
 Current testing covers:
 

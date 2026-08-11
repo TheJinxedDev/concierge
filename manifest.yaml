@@ -1,11 +1,11 @@
 schema_version: 1
 kind: hermes-skill-package
 name: concierge
-version: 0.1.16-dev.2
+version: 0.1.16-dev.3
 artifact_status: rough-semantic-beta
 distribution: direct-skill
 skill_path: SKILL.md
-raw_skill_url: https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.2/SKILL.md
+raw_skill_url: https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.3/SKILL.md
 raw_skill_url_pattern: https://raw.githubusercontent.com/<owner>/<repository>/<ref>/SKILL.md
 setup_status: native-hermes-boundary-verified
 installable_claim: true
@@ -18,9 +18,8 @@ cron_mutated: false
 capture_enabled: false
 
 source_of_truth:
-  project_status: PROJECT_STATUS.md
-  deferred_work: DEFERRED_WORK.md
-  compatibility_matrix: docs/data-contract/compatibility-matrix.md
+  compatibility_matrix: references/compatibility-matrix.md
+  package_contracts: references/package-contracts.md
   fixture_seed: backend/tests/fixtures/concierge_e2e/seed_export.json
   fixture_catalog: backend/tests/fixtures/concierge_e2e/source_catalog.json
 
@@ -80,7 +79,7 @@ package_files:
 
 release_evidence:
   report_schema: "1"
-  install_report: install-report.json
+  install_report: generated-per-installation
   local_smoke_status: complete-native-hermes-boundary
   public_url_status: public_resolved
   smoke_report: native-hermes-boundary-local-disposable

@@ -29,6 +29,7 @@ from app.library_service import (
     RecommendationOutcomeIdentityConflictError,
     RecommendationReferenceConflictError,
 )
+from app.mcp_server import assistant_proposal_receipt_view
 
 
 def _serialize_import_document(document: ExportDocument) -> dict:
@@ -272,7 +273,7 @@ def create_app(web_root: Path | None = None) -> FastAPI:
             )
         except ValueError as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
-        return proposal.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
+        return assistant_proposal_receipt_view(proposal)
 
     @app.post("/proposals/{proposal_id}/accept")
     def accept_proposal(proposal_id: str):

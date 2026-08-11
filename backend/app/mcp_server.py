@@ -167,7 +167,7 @@ def _assistant_proposed_observation_view(observation: Any) -> dict[str, Any]:
     return projected
 
 
-def _assistant_proposal_receipt_view(proposal: Proposal) -> dict[str, Any]:
+def assistant_proposal_receipt_view(proposal: Proposal) -> dict[str, Any]:
     """Project a write receipt without returning trusted source evidence."""
 
     serialized = proposal.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
@@ -293,7 +293,7 @@ def submit_pending_proposal_record(
     payload["review_state"] = proposal.review_state.value
     persisted = Proposal.model_validate(library.submit_proposal(payload))
     serialized = (
-        _assistant_proposal_receipt_view(persisted)
+        assistant_proposal_receipt_view(persisted)
         if assistant_projection
         else persisted.model_dump(mode="json", exclude_none=True, exclude_defaults=True)
     )

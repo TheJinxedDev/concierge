@@ -1,32 +1,26 @@
 # Concierge package verification
 
-**Artifact status:** rough `0.1.16-dev.2` semantic-beta prerelease candidate. Windows local evidence is recorded; the fresh-agent public-link walkthrough and broader provider/Linux acceptance remain outside this packet.
+**Artifact status:** rough `0.1.16-dev.3` semantic-beta prerelease candidate. Windows local evidence is recorded; the fresh-agent public-link walkthrough and broader provider/Linux acceptance remain outside this packet.
 
-## P6.1 checks
+## Ordinary verification
 
-From the repository root:
+Quick setup already performs package preflight. After setup, run the receipt's
+read-only verifier, then use native Hermes readback:
 
-```bash
-uv run pytest -q backend/tests/test_p61_package_layout.py
-uv run pytest -q
-
-git diff --check
+```text
+python scripts/concierge_quickstart.py --verify-receipt <RECEIPT_PATH>
+hermes mcp list
+hermes mcp test taste_database
 ```
 
-The package-layout test checks the root skill name/version, manifest identity, required support files, fixture markers, export/migration compatibility claims, and the explicit no-installable-claim state.
+Require `action=concierge_installation_verified`, the expected artifact hash,
+and exactly nine MCP tools. Start a new Hermes session before expecting those
+tools in an already-running agent.
 
-## Later evidence levels
+This proves the owned runtime, skill path, readable database, and MCP connection.
+It does not prove that every model will interpret every conversation correctly,
+that Linux works, or that optional cron jobs were enabled. Verify any approved
+cron plans by reading those native Hermes jobs back separately.
 
-| Level | What it proves | What it does not prove |
-|---|---|---|
-| P6.1 local artifact | Required files exist and agree on package identity | Installation, MCP mutation, cron creation, capture, clean-room behavior |
-| P6.2 setup path | Read-only preflight and bounded idempotent setup behavior | Fresh-agent natural-language behavior or a published release |
-| P6.3 recovery | Upgrade, uninstall, conflict, interruption, and package-file recovery boundaries | Scheduler execution against real sessions |
-| P6.4 release docs | Documentation, manifest, package CLI, report schema, and known-limitations completeness | Runtime success merely because docs exist |
-| P6.5 local smoke | Exact artifact in temporary profile/data paths, MCP discovery, report, uninstall boundary, default-profile hash stability | Public release or live capture authorization |
-| P7.1–P7.5 | Disposable clean-room installation, MCP/cron/readback, and mock fresh-agent plumbing | Real-provider natural-language behavior |
-| P7.6 | Eight synthetic negative/unavailable-path cases with cursor/claim/lock/scoring dispositions | Provider or live-session behavior |
-| P7.7 | Reproducible local artifact/hash, environment/commands, MCP/cron/database, mock transcript, counts, and limitations packet | Public URL, real-provider acceptance, independent review, release decision |
-| P8 | Final local verification and release-gate reconciliation | Anything outside the recorded artifact/version/ref |
-
-The P6.5 install report schema is `backend/app/package_report.py`; it records artifact identity/hash, paths, checks, version commands, actions, non-actions, MCP/cron/database mutation flags, caveats, and the fresh-session requirement. Never turn a successful `hermes skills install`, MCP connection, or cron terminal status into a claim about canonical safety without independent readback.
+Developer and release-gate checks belong in the repository test suite; ordinary
+users do not need to replay the historical P6/P7/P8 evidence ceremony.

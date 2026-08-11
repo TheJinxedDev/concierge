@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.16-dev.3 — clearer consent and receipt verification (pre-release)
+
+- Makes automation onboarding three genuinely sequential decisions, and does
+  not offer automatic promotion when neither capture source is enabled.
+- Reuses profile paths from the setup receipt for the automation pass; backlog
+  policy is requested only when one-time backlog capture is enabled.
+- Adds read-only verification for the exact installed artifact and database.
+- Requires PTY-based MCP approval plus list/test readback, and tells users to
+  start a new Hermes session before expecting newly registered tools.
+
 ## 0.1.16-dev.2 — streamlined public onboarding (pre-release)
 
 - Replaces release-gate rehearsal with one profile-scoped quickstart while

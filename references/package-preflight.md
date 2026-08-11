@@ -1,10 +1,11 @@
 # Concierge package preflight
 
-**Artifact status:** P6.2 read-only preflight and local setup boundary. Preflight is implemented; it does not authorize default-profile mutation.
+**Artifact status:** Optional read-only diagnostic for the public rough beta. It
+does not authorize profile mutation and is already included in Quick setup.
 
 A package operation must begin with read-only inspection and stop before any mutation when a prerequisite, ownership check, or compatibility claim is uncertain. The repository implementation is `backend/app/package_preflight.py`, exposed through `scripts/concierge_package.py`.
 
-## Required order for P6.2
+## Diagnostic order
 
 1. Capture a redacted read-only baseline: repository/ref, package version, active Hermes profile, safe MCP names, safe cron IDs/metadata, and existing Concierge data-path state.
 2. Verify Hermes/platform support with the live CLI and official documentation.
@@ -25,7 +26,7 @@ A package operation must begin with read-only inspection and stop before any mut
 From the repository root:
 
 ```bash
-uv run python scripts/concierge_package.py preflight --check-commands --report .hermes/concierge-beta/install-report.json
+uv run python scripts/concierge_package.py preflight --check-commands
 ```
 
 The command resolves the explicit `CONCIERGE_DATA_DIR` exactly, computes a deterministic artifact hash over manifest-declared files, probes `hermes`, `python`, and `uv` only when `--check-commands` is supplied, and emits JSON. It does not create the selected Hermes home, runtime root, data directory, database, MCP entry, cron job, enablement ledger, or capture state. If `--report` is supplied, the CLI writes only that explicitly requested report file and marks the narrow report-write side effect in the receipt.
@@ -47,4 +48,6 @@ uv run python scripts/concierge_package.py install --artifact-root . --hermes-ho
 uv run python scripts/concierge_package.py recover --hermes-home <temporary-hermes-home> --local-appdata <temporary-local-appdata>
 ```
 
-Those commands own only the versioned package runtime and `skills/concierge`; MCP, cron, consent, and SQLite remain separate gates. The exact private prerelease supplies temporary-profile smoke evidence. A public direct URL remains blocked while the repository is private; do not mistake the private versioned ref for anonymous installability.
+Those commands own only the versioned package runtime and `skills/concierge`;
+MCP, cron, consent, and SQLite remain separate gates. Normal users should use
+the repository README's Quick setup rather than replaying these diagnostic steps.

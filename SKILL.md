@@ -1,7 +1,7 @@
 ---
 name: concierge
 description: Set up and operate Concierge, a local-first semantic media archive with proposal-first capture and factual MCP queries.
-version: 0.1.16-dev.2
+version: 0.1.16-dev.3
 ---
 
 # Concierge public-beta onboarding
@@ -31,14 +31,14 @@ your library. Use it, prod it, and report what feels awkward or breaks.
 ## Quick setup
 
 The tagged repository checkout is the runtime. Start from the immutable
-`v0.1.16-dev.2` tag, not an older release or a cached branch URL.
+`v0.1.16-dev.3` tag, not an older release or a cached branch URL.
 
 1. Confirm which Hermes profile should own Concierge. Resolve that profile's
    absolute `<HERMES_HOME>` with the public Hermes CLI, plus an absolute
    `<LOCALAPPDATA>` and an external `<CONCIERGE_ENV>` directory. If the target is
    ambiguous, ask—do not guess.
 2. Clone or download `https://github.com/TheJinxedDev/concierge` at tag
-   `v0.1.16-dev.2` into a temporary checkout. From its root run the single
+   `v0.1.16-dev.3` into a temporary checkout. From its root run the single
    **Quick setup** command shown in that checkout's README with the three paths.
 
    The bootstrap performs package preflight, creates a separate locked Python
@@ -46,20 +46,22 @@ The tagged repository checkout is the runtime. Start from the immutable
    `<HERMES_HOME>/concierge-data`. It strips inherited Hermes Python paths and
    does not copy credentials, inspect sessions, configure providers, create cron
    jobs, or generate scores.
-3. Require `action=concierge_ready_for_hermes_registration`. Keep the returned
-   artifact hash and paths for feedback or uninstall.
-4. Register `initialization.mcp` using native `hermes mcp add`, then run
-   `hermes mcp test taste_database`. Confirm the returned profile paths and nine
-   tools before accepting Hermes' interactive registration prompt. A same-name
-   entry with different command, arguments, environment, or profile is a
-   conflict—never overwrite it silently.
+3. Continue only when the JSON says
+   `action=concierge_ready_for_hermes_registration`; otherwise stop and report
+   its reason. Keep the receipt path for verification, feedback, and uninstall.
+4. Register `initialization.mcp` using native `hermes mcp add` in a PTY-capable terminal so the user can explicitly approve the nine tools. Never pipe a
+   blind `Y`, and never trust the add command's exit code: verify the exact entry
+   with `hermes mcp list`, then require `hermes mcp test taste_database` to report exactly nine tools. A differing same-name entry is a conflict; never
+   overwrite it silently; start a new Hermes session before expecting the tools
+   to appear in an already-running agent.
 
 The MCP surface provides factual semantic reads plus one proposal-only write. It
 does not expose review, deletion, raw SQL, cron-policy changes, or score writes.
 
 ## Explain automation before asking
 
-Start fully manual. Explain and ask for a separate yes/no answer to each job:
+Start fully manual. Ask the questions sequentially. Do not use one combined or multi-select picker, because the UI may enforce only one selection even when its
+prose says otherwise.
 
 1. **One-time backlog capture** — examines a bounded set of existing, completed
    conversations and creates pending proposals from clear evidence. If enabled,
@@ -72,17 +74,16 @@ Start fully manual. Explain and ask for a separate yes/no answer to each job:
    eligible pending proposals and records canonical before/after receipts.
    Uncertain candidates remain pending.
 
-Do not offer or accept promotion alone: at least one capture source (backlog or
-ongoing capture) must be enabled. An unanswered question is not consent.
+Ask about automatic promotion only after the two capture answers are known. If
+both are `no`, explain that promotion is unavailable because nothing would feed
+it, record promotion as `no`, and do not offer a selectable promotion choice.
+An unanswered question is not consent.
 
-After all three answers are explicit, rerun that same README quickstart command
-with:
+After all three answers are explicit, use the README's receipt-based automation
+form instead of asking for the profile paths again.
 
-```text
---backlog-cron <yes|no> --recent-capture-cron <yes|no> --promotion-cron <yes|no> --backlog-policy <process_existing|start_fresh>
-```
-
-This safely reuses the owned installation. The short console receipt names the
+Supply `--backlog-policy` only when backlog capture is `yes`. This safely reuses
+the owned installation. The short console receipt names the
 full `receipt_path`; read `automation.native_hermes_jobs.plans` there. It does
 not create jobs itself. Create only the approved plans through Hermes' native
 `cronjob` tool (or the public profile-scoped `hermes cron` CLI), attach the

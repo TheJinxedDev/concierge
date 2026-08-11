@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 import os
 import sys
 from argparse import Namespace
@@ -14,16 +15,22 @@ from app.automation_cron_identity import build_automation_job_specs
 from app.automation_preferences import AutomationPreferences, AutomationPreferencesStore
 from app.package_lifecycle import LifecycleAction, LifecycleResult, PackageInstallation
 from app.package_mcp import McpOwnership, build_mcp_server_spec, classify_mcp_record
+from app.domain import Proposal
+from app.mcp_server import assistant_proposal_receipt_view
 from scripts.concierge_package import (
     _environment,
     _assert_uninstall_launcher_is_outside_runtime,
     _installation_payload,
 )
+from scripts import concierge_quickstart as quickstart_module
 from scripts.concierge_quickstart import (
     build_child_environment,
     condense_quickstart_receipt,
+    derive_backlog_policy,
+    load_setup_context,
     result_mutated,
     validate_automation_choices,
+    verify_quickstart_receipt,
 )
 from scripts.concierge_setup import EXPLICIT_AUTOMATION_CONFIRMATION, save_automation_preferences
 
@@ -222,11 +229,12 @@ def test_quickstart_child_environment_scrubs_hermes_python_paths(
     monkeypatch.setenv("VIRTUAL_ENV", "C:/hermes/venv")
     monkeypatch.setenv("OPENROUTER_API_KEY", "must-not-enter-concierge")
 
-    values = build_child_environment(tmp_path / "concierge-env")
+    values = build_child_environment(tmp_path / "concierge-env", tmp_path / "concierge-data")
 
     assert values["PYTHONPATH"] == ""
     assert values["VIRTUAL_ENV"] == ""
     assert values["UV_PROJECT_ENVIRONMENT"] == str(tmp_path / "concierge-env")
+    assert values["CONCIERGE_DATA_DIR"] == str(tmp_path / "concierge-data")
     assert "OPENROUTER_API_KEY" not in values
 
 
@@ -301,3 +309,178 @@ def test_quickstart_console_receipt_omits_verbose_inventory_and_prompts():
     assert condensed["automation"]["native_hermes_plan_count"] == 1
     assert "prompt" not in str(condensed)
     assert condensed["receipt_path"] == str(Path("C:/data/quickstart-receipt.json"))
+
+
+def test_quickstart_reuses_profile_paths_from_its_full_receipt(tmp_path: Path):
+    receipt = tmp_path / "quickstart-receipt.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "setup_context": {
+                    "hermes_home": str(tmp_path / "hermes"),
+                    "local_appdata": str(tmp_path / "local"),
+                    "environment_directory": str(tmp_path / "env"),
+                    "data_directory": str(tmp_path / "data"),
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    context = load_setup_context(receipt)
+
+    assert context.hermes_home == (tmp_path / "hermes").resolve()
+    assert context.data_directory == (tmp_path / "data").resolve()
+
+
+def test_backlog_policy_is_only_requested_when_backlog_capture_is_enabled():
+    assert derive_backlog_policy("no", None) == "start_fresh"
+    with pytest.raises(ValueError, match="backlog policy"):
+        derive_backlog_policy("yes", None)
+
+
+def test_receipt_reuse_verifies_the_owned_install_before_any_setup_command(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    receipt = tmp_path / "quickstart-receipt.json"
+    receipt.write_text("{}", encoding="utf-8")
+    commands_started = False
+
+    def reject_unverified(_):
+        raise ValueError("receipt verification failed")
+
+    def unexpected_command(*_args, **_kwargs):
+        nonlocal commands_started
+        commands_started = True
+
+    monkeypatch.setattr(quickstart_module, "verify_quickstart_receipt", reject_unverified)
+    monkeypatch.setattr(quickstart_module, "_run_json", unexpected_command)
+    args = Namespace(
+        receipt=str(receipt),
+        hermes_home=None,
+        local_appdata=None,
+        environment_dir=None,
+        data_dir=None,
+        backlog_cron="no",
+        recent_capture_cron="yes",
+        promotion_cron="no",
+        backlog_policy=None,
+        favorite_media_interview="no",
+        decision_id=None,
+    )
+
+    with pytest.raises(ValueError, match="receipt verification failed"):
+        quickstart_module.quickstart(args)
+
+    assert commands_started is False
+
+
+def test_receipt_verification_is_read_only_and_checks_exact_installation(tmp_path: Path):
+    runtime = tmp_path / "runtime" / "artifact"
+    skill = tmp_path / "hermes" / "skills" / "concierge"
+    data = tmp_path / "data"
+    runtime.mkdir(parents=True)
+    skill.mkdir(parents=True)
+    data.mkdir(parents=True)
+    (runtime / "marker.txt").write_text("runtime", encoding="utf-8")
+    (skill / "SKILL.md").write_text("skill", encoding="utf-8")
+    database = data / "taste-database.sqlite3"
+    import sqlite3
+    with sqlite3.connect(database) as connection:
+        connection.execute("CREATE TABLE media_items (id TEXT PRIMARY KEY)")
+        connection.execute("CREATE TABLE proposals (id TEXT PRIMARY KEY)")
+    receipt = tmp_path / "receipt.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "setup_context": {"data_directory": str(data)},
+                "installation": {
+                    "artifact_hash": "sha256:expected",
+                    "runtime_project_path": str(runtime),
+                    "skill_path": str(skill),
+                },
+                "initialization": {"database_path": str(database)},
+            }
+        ),
+        encoding="utf-8",
+    )
+    before = {path: path.stat().st_mtime_ns for path in (runtime / "marker.txt", skill / "SKILL.md", database)}
+
+    result = verify_quickstart_receipt(receipt, artifact_hash_reader=lambda _: "sha256:expected")
+
+    assert result["action"] == "concierge_installation_verified"
+    assert result["mutated"] is False
+    assert result["snapshot"] == {"canonical_media": 0, "pending_proposals": 0}
+    assert result["native_hermes_checks"] == [
+        "hermes mcp list",
+        "hermes mcp test taste_database",
+    ]
+    assert before == {path: path.stat().st_mtime_ns for path in before}
+
+
+def test_onboarding_forces_sequential_automation_questions_and_mcp_readback():
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "Do not use one combined or multi-select picker" in skill
+    assert "Ask about automatic promotion only after" in skill
+    assert "promotion is unavailable" in skill
+    assert "PTY-capable terminal" in skill
+    assert "never trust the add command's exit code" in skill
+    assert "hermes mcp list" in skill
+    assert "exactly nine tools" in skill
+    assert "start a new Hermes session" in skill
+
+
+def test_quickstart_preflight_uses_the_selected_profile_data_directory(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "legacy-local"))
+
+    values = build_child_environment(tmp_path / "env", tmp_path / "profile-data")
+
+    assert values["CONCIERGE_DATA_DIR"] == str(tmp_path / "profile-data")
+    source = (ROOT / "scripts" / "concierge_quickstart.py").read_text(encoding="utf-8")
+    assert '"--data-dir",\n            str(data_directory)' in source
+
+
+def test_manifest_references_only_packaged_source_and_release_evidence():
+    manifest = (ROOT / "manifest.yaml").read_text(encoding="utf-8")
+
+    assert "PROJECT_STATUS.md" not in manifest
+    assert "DEFERRED_WORK.md" not in manifest
+    assert "docs/data-contract/compatibility-matrix.md" not in manifest
+    assert "install_report: install-report.json" not in manifest
+
+
+def test_api_proposal_write_receipt_redacts_private_source_context():
+    proposal = Proposal.model_validate(
+        {
+            "id": "proposal-private-context",
+            "target_media_item_id": "media-1",
+            "kind": "observation",
+            "proposed_observation": {
+                "id": "observation-private-context",
+                "scope": "work",
+                "polarity": "positive",
+                "dimension": "tone",
+                "text": "Warm and strange",
+                "provenance": "assistant_inferred",
+                "privacy": "assistant_readable",
+                "source_context": "private nested transcript excerpt",
+                "confidence": 0.91,
+                "review_state": "needs_review",
+                "observed_on": "2026-08-10",
+            },
+            "source_context": "private proposal transcript excerpt",
+            "confidence": 0.91,
+            "review_state": "needs_review",
+            "proposed_on": "2026-08-10",
+        }
+    )
+
+    receipt = assistant_proposal_receipt_view(proposal)
+
+    assert receipt["source_context"] == "[REDACTED]"
+    assert receipt["proposed_observation"]["source_context"] == "[REDACTED]"
+    api_source = (ROOT / "backend" / "app" / "api.py").read_text(encoding="utf-8")
+    assert "assistant_proposal_receipt_view(proposal)" in api_source
