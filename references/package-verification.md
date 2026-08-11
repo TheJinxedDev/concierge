@@ -1,6 +1,6 @@
 # Concierge package verification
 
-**Artifact status:** rough `0.1.16-dev.3` semantic-beta prerelease candidate. Windows local evidence is recorded; the fresh-agent public-link walkthrough and broader provider/Linux acceptance remain outside this packet.
+**Artifact status:** rough `0.1.16-dev.4` semantic-beta prerelease candidate. Windows package and prebuilt-UI evidence must be recorded; broader provider/Linux acceptance remains outside this packet.
 
 ## Ordinary verification
 

@@ -24,6 +24,7 @@ from scripts.concierge_package import (
 )
 from scripts import concierge_quickstart as quickstart_module
 from scripts.concierge_quickstart import (
+    build_ui_handoff,
     build_child_environment,
     condense_quickstart_receipt,
     derive_backlog_policy,
@@ -383,6 +384,10 @@ def test_receipt_verification_is_read_only_and_checks_exact_installation(tmp_pat
     skill.mkdir(parents=True)
     data.mkdir(parents=True)
     (runtime / "marker.txt").write_text("runtime", encoding="utf-8")
+    ui_assets = runtime / "frontend" / "dist" / "assets"
+    ui_assets.mkdir(parents=True)
+    (ui_assets.parent / "index.html").write_text("Concierge", encoding="utf-8")
+    (ui_assets / "app.js").write_text("built", encoding="utf-8")
     (skill / "SKILL.md").write_text("skill", encoding="utf-8")
     database = data / "taste-database.sqlite3"
     import sqlite3
@@ -484,3 +489,25 @@ def test_api_proposal_write_receipt_redacts_private_source_context():
     assert receipt["proposed_observation"]["source_context"] == "[REDACTED]"
     api_source = (ROOT / "backend" / "app" / "api.py").read_text(encoding="utf-8")
     assert "assistant_proposal_receipt_view(proposal)" in api_source
+
+
+def test_quickstart_hands_the_agent_an_exact_installed_ui_command(tmp_path: Path):
+    runtime = tmp_path / "Concierge" / "packages" / "0.1.16-dev.4" / "artifact"
+    data = tmp_path / "profile" / "concierge-data"
+    environment = tmp_path / "Concierge" / "envs" / "0.1.16-dev.4"
+
+    handoff = build_ui_handoff(runtime, data, environment, port=4173)
+
+    assert handoff["url"] == "http://127.0.0.1:4173/"
+    assert handoff["readiness_url"] == "http://127.0.0.1:4173/health"
+    python = environment / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    assert handoff["launch_command"] == [
+        str(python),
+        "-I",
+        str(runtime / "scripts" / "launch.py"),
+        "--data-dir",
+        str(data),
+        "--port",
+        "4173",
+    ]
+    assert "environment" not in handoff

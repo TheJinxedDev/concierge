@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.16-dev.4 — restore the complete local application (pre-release)
+
+- Packages the production browser UI and loopback API together; users do not
+  need Node or npm to launch the installed beta.
+- Restores the local review workflow for accepting, rejecting, and manually
+  promoting pending proposals.
+- Adds an exact UI command, readiness URL, and browser URL to setup receipts and
+  requires onboarding agents to start the server and point users to the UI.
+- Adds release tests that fail if the built index, assets, launcher, or UI
+  onboarding handoff is omitted again.
+
 ## 0.1.16-dev.3 — clearer consent and receipt verification (pre-release)
 
 - Makes automation onboarding three genuinely sequential decisions, and does

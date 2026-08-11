@@ -36,7 +36,7 @@ hermes mcp test taste_database
 
 `<profile-scoped-env>` must be outside both the immutable artifact root and the
 versioned install directory. The default is a hidden sibling environment under
-the package parent (for example, `.../packages/.0.1.16-dev.3.venv`). The
+the package parent (for example, `.../packages/.0.1.16-dev.4.venv`). The
 `UV_PROJECT_ENVIRONMENT` override prevents the first `uv run` or Hermes MCP
 test from creating `.venv` inside the installed package tree, so package
 uninstall can quarantine the versioned runtime without holding the active

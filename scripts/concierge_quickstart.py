@@ -79,6 +79,34 @@ def build_child_environment(
     return values
 
 
+def build_ui_handoff(
+    runtime_root: Path,
+    data_directory: Path,
+    environment_directory: Path,
+    *,
+    port: int = 4173,
+) -> dict[str, object]:
+    """Return the exact native command and URLs for the installed browser UI."""
+
+    url = f"http://127.0.0.1:{port}/"
+    python = environment_directory / (
+        "Scripts/python.exe" if os.name == "nt" else "bin/python"
+    )
+    return {
+        "launch_command": [
+            str(python),
+            "-I",
+            str(runtime_root / "scripts" / "launch.py"),
+            "--data-dir",
+            str(data_directory),
+            "--port",
+            str(port),
+        ],
+        "url": url,
+        "readiness_url": f"{url}health",
+    }
+
+
 def result_mutated(*receipts: dict[str, object] | None) -> bool:
     """Return whether any completed setup stage reported a mutation."""
 
@@ -163,6 +191,10 @@ def verify_quickstart_receipt(
     )
     if not runtime_root.is_dir() or not skill_path.is_dir() or not database_path.is_file():
         raise ValueError("quickstart receipt points to a missing runtime, skill, or database")
+    web_root = runtime_root / "frontend" / "dist"
+    assets = web_root / "assets"
+    if not (web_root / "index.html").is_file() or not assets.is_dir() or not any(assets.iterdir()):
+        raise ValueError("quickstart receipt points to an installation without a built UI")
     expected_hash = installation.get("artifact_hash")
     actual_hash = artifact_hash_reader(runtime_root)
     if not isinstance(expected_hash, str) or actual_hash != expected_hash:
@@ -178,6 +210,7 @@ def verify_quickstart_receipt(
         "runtime_project_path": str(runtime_root),
         "skill_path": str(skill_path),
         "database_path": str(database_path),
+        "ui_bundle": str(web_root),
         "snapshot": {
             "canonical_media": canonical_media,
             "pending_proposals": pending_proposals,
@@ -229,6 +262,7 @@ def condense_quickstart_receipt(
             for key in ("action", "data_directory", "database_path", "mcp")
         },
         "automation": automation_summary,
+        "ui": payload.get("ui"),
         "next_steps": payload.get("next_steps"),
     }
 
@@ -396,6 +430,11 @@ def quickstart(args: argparse.Namespace) -> dict[str, object]:
         "installation": installation,
         "initialization": initialization,
         "automation": automation,
+        "ui": build_ui_handoff(
+            runtime_root,
+            data_directory,
+            environment_directory,
+        ),
         "setup_context": {
             "hermes_home": str(hermes_home),
             "local_appdata": str(local_appdata),
@@ -405,6 +444,7 @@ def quickstart(args: argparse.Namespace) -> dict[str, object]:
         "next_steps": {
             "mcp": "Register and test the exact MCP spec in initialization.mcp with native Hermes.",
             "automation": "Explain and ask the three independent cron choices; full native plans are in receipt_path.",
+            "ui": "Start ui.launch_command, wait for ui.readiness_url, then point the user to ui.url.",
         },
     }
     receipt_path = data_directory / "quickstart-receipt.json"

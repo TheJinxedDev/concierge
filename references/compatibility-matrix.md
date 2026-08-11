@@ -1,6 +1,6 @@
 # Concierge package compatibility matrix
 
-**Artifact status:** rough `0.1.16-dev.3` semantic beta prerelease; exact Windows package gate verified; Linux untested.
+**Artifact status:** rough `0.1.16-dev.4` semantic beta prerelease; Windows package and prebuilt-UI gate required; Linux untested.
 
 This package-contained matrix is the public beta compatibility record.
 

@@ -1298,7 +1298,7 @@ wheels = [
 
 [[package]]
 name = "taste-database"
-version = "0.1.16.dev3"
+version = "0.1.16.dev4"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },

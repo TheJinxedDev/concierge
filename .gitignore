@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+
+# Node
+node_modules/
+coverage/
+*.tsbuildinfo
+
+# Built UI is intentionally committed for users without Node.
+frontend/dist/*
+!frontend/dist/index.html
+!frontend/dist/assets/
+!frontend/dist/assets/*
+
+# Local application data and secrets
+data/
+.env
+.env.*
+!*.example
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -104,7 +104,7 @@ the reported profile-scoped `receipt_path`.
 For an advanced/manual skill-only inspection, use the immutable public-beta tag:
 
 ```text
-hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.3/SKILL.md
+hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.4/SKILL.md
 ```
 
 The normal path is still to give the agent this repository link. The skill-only
@@ -116,6 +116,12 @@ tools. The agent must then verify the exact record with `hermes mcp list` and
 require `hermes mcp test taste_database` to report nine tools; the add command's
 exit code alone is not proof. Start a new Hermes session before expecting those
 tools to appear in an already-running agent.
+
+The same receipt includes `ui.launch_command`, `ui.readiness_url`, and `ui.url`.
+The agent starts that command in the background, waits for readiness, and points
+you to the local browser UI. The production UI is prebuilt into the package and
+does not require Node or npm on the installing machine. It serves the interface
+and API together on loopback, normally at `http://127.0.0.1:4173/`.
 
 Automation is then asked as three sequential yes/no questions: backlog capture,
 ongoing ended-session capture, and—only if either capture source is enabled—
@@ -143,7 +149,7 @@ To uninstall package-owned files later, run this from the original checkout,
 not from inside the installed runtime:
 
 ```text
-python scripts/concierge_package.py uninstall --version 0.1.16-dev.3 --expected-artifact-hash <HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+python scripts/concierge_package.py uninstall --version 0.1.16-dev.4 --expected-artifact-hash <HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
 ```
 
 The user library, MCP entry, and Hermes jobs are separate and are never silently
@@ -151,17 +157,17 @@ deleted by this command.
 
 ## Current beta status
 
-The initial `0.1.16-dev` prerelease is superseded because it carried an older
-setup path. The current `0.1.16-dev.3` candidate uses native Hermes surfaces,
-one profile-scoped quickstart, no upper Hermes version pin, and substantially
-less installation ceremony. It adds receipt-driven verification and setup reuse,
-sequential automation consent, and strict native MCP readback. It preserves the
-same privacy, proposal, scoring, and explicit automation boundaries. A full
-fresh-agent walkthrough from this tag is the next test—not a claim already being
-made here.
+The current `0.1.16-dev.4` beta uses native Hermes surfaces, one profile-scoped
+quickstart, no upper Hermes version pin, and a prebuilt local browser UI. It adds
+receipt-driven verification and setup reuse, sequential automation consent,
+strict native MCP readback, and an exact UI launch handoff. Earlier prereleases
+remain historical evidence but are superseded for installation. The privacy,
+proposal, scoring, and explicit automation boundaries remain unchanged.
 
 Current testing covers:
 
+- exact-package UI startup, built asset delivery, API routing, and manual
+  proposal acceptance/promotion through the browser;
 - package installation and uninstall;
 - explicit cron-plan generation and rejection of promotion with no capture source;
 - native Hermes cron creation/readback/removal in a disposable profile;

@@ -1,7 +1,7 @@
 ---
 name: concierge
 description: Set up and operate Concierge, a local-first semantic media archive with proposal-first capture and factual MCP queries.
-version: 0.1.16-dev.3
+version: 0.1.16-dev.4
 ---
 
 # Concierge public-beta onboarding
@@ -31,14 +31,14 @@ your library. Use it, prod it, and report what feels awkward or breaks.
 ## Quick setup
 
 The tagged repository checkout is the runtime. Start from the immutable
-`v0.1.16-dev.3` tag, not an older release or a cached branch URL.
+`v0.1.16-dev.4` tag, not an older release or a cached branch URL.
 
 1. Confirm which Hermes profile should own Concierge. Resolve that profile's
    absolute `<HERMES_HOME>` with the public Hermes CLI, plus an absolute
    `<LOCALAPPDATA>` and an external `<CONCIERGE_ENV>` directory. If the target is
    ambiguous, ask—do not guess.
 2. Clone or download `https://github.com/TheJinxedDev/concierge` at tag
-   `v0.1.16-dev.3` into a temporary checkout. From its root run the single
+   `v0.1.16-dev.4` into a temporary checkout. From its root run the single
    **Quick setup** command shown in that checkout's README with the three paths.
 
    The bootstrap performs package preflight, creates a separate locked Python
@@ -54,6 +54,12 @@ The tagged repository checkout is the runtime. Start from the immutable
    with `hermes mcp list`, then require `hermes mcp test taste_database` to report exactly nine tools. A differing same-name entry is a conflict; never
    overwrite it silently; start a new Hermes session before expecting the tools
    to appear in an already-running agent.
+5. **Start the Concierge UI.** Run the exact `ui.launch_command` from the setup
+   receipt as a background process. Wait until `ui.readiness_url` returns healthy,
+   then point the user to `ui.url`. The packaged browser bundle is already built;
+   do not install Node, run npm, or start a separate API server. Keep the process
+   running while the user reviews, accepts, rejects, or manually promotes pending
+   proposals. If startup fails, report its real output instead of hiding the UI.
 
 The MCP surface provides factual semantic reads plus one proposal-only write. It
 does not expose review, deletion, raw SQL, cron-policy changes, or score writes.
