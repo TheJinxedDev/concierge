@@ -38,7 +38,11 @@ def _path(value: str | None) -> Path | None:
 
 
 def _environment(args: argparse.Namespace) -> dict[str, str]:
-    values = dict(os.environ)
+    values = {
+        key: value
+        for key in ("APPDATA", "HERMES_HOME", "HOME", "LOCALAPPDATA", "USERPROFILE")
+        if (value := os.getenv(key)) is not None
+    }
     for option, environment_key in (
         ("hermes_home", "HERMES_HOME"),
         ("local_appdata", "LOCALAPPDATA"),

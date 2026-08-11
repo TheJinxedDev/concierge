@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.1.16-dev.2 — streamlined public onboarding (pre-release)
+
+- Replaces release-gate rehearsal with one profile-scoped quickstart while
+  retaining artifact preflight, isolated dependencies, exact ownership, and
+  proposal/privacy boundaries in code.
+- Removes the obsolete Hermes `0.20.x` compatibility implication; Concierge
+  uses public Hermes CLI/tool contracts and has no upper Hermes version pin.
+- Projects only required environment values, scrubs inherited Hermes Python
+  paths, and avoids copying credentials into Concierge child processes.
+- Keeps three independently explained cron choices and rejects promotion with
+  no capture source. Native Hermes remains responsible for MCP and cron state.
+
 ## 0.1.16-dev.1 — native-Hermes setup correction (pre-release)
 
 - Supersedes the `0.1.16-dev` prerelease, which retained an obsolete setup path.

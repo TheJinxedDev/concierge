@@ -1,6 +1,6 @@
 # Concierge package known limitations — current beta closure
 
-- This is a rough public `0.1.16-dev.1` beta work in progress, not a finished production release. It is the corrected native-Hermes setup candidate; the older `0.1.16-dev` prerelease is superseded.
+- This is a rough public `0.1.16-dev.2` beta work in progress, not a finished production release. It is the streamlined native-Hermes setup candidate; the older prereleases are superseded.
 - ADR 0012 ratifies the bounded fully automatic beta: independent finite backlog capture, recent ended-session capture, and automatic promotion jobs. Capture remains exact-title/alias plus explicit-cue and proposal-first; promotion uses the documented `0.85` threshold; automatic querying is bounded Concierge read-routing, not an active-session crawler.
 - The beta gate separately verifies the current snapshot; historical P6.5, P7, P8, and provider receipts are not current proof and are not folded into this verdict.
 - A public repository link exists, but a full user-driven fresh-agent walkthrough of this newer native-Hermes boundary is still pending. Record the tested commit hash; historical tagged/archive evidence is not proof for the moving public-beta branch.

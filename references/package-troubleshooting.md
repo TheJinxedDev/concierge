@@ -6,15 +6,12 @@
 
 The current public versioned raw skill URL is:
 
-`https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.1/SKILL.md`
+`https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.2/SKILL.md`
 
 The public rough-beta release archive and checksum sidecar are linked from the
-`v0.1.16-dev.1` release. Verify that exact archive and its SHA-256 sidecar before
-extraction; do not substitute a branch, a working checkout, or a different
-owner/repository/tag. A community-skill scanner may require the installer's
-explicit `--force` override after the verified URL and checksum have been
-reviewed. That override is for this known candidate only, not for an unknown
-source.
+`v0.1.16-dev.2` release. Do not substitute an older tag, a cached branch URL, or
+a different owner/repository/tag. The ordinary quickstart keeps release-grade
+checks inside the implementation instead of asking each user to replay them.
 
 The older `v0.1.16-dev` prerelease is explicitly superseded and must not be
 used for fresh setup.

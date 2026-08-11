@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import sys
 from argparse import Namespace
 
@@ -14,8 +15,15 @@ from app.automation_preferences import AutomationPreferences, AutomationPreferen
 from app.package_lifecycle import LifecycleAction, LifecycleResult, PackageInstallation
 from app.package_mcp import McpOwnership, build_mcp_server_spec, classify_mcp_record
 from scripts.concierge_package import (
+    _environment,
     _assert_uninstall_launcher_is_outside_runtime,
     _installation_payload,
+)
+from scripts.concierge_quickstart import (
+    build_child_environment,
+    condense_quickstart_receipt,
+    result_mutated,
+    validate_automation_choices,
 )
 from scripts.concierge_setup import EXPLICIT_AUTOMATION_CONFIRMATION, save_automation_preferences
 
@@ -78,9 +86,9 @@ def test_onboarding_names_native_hermes_tools_and_not_a_private_backend():
     assert "native Hermes tools" in skill
     assert "session_search" in skill
     assert "cronjob" in skill
-    assert "Do not search for a Hermes source checkout" in skill
-    assert "HERMES_HOME=<HERMES_HOME> hermes mcp add" in skill
-    assert "HERMES_HOME=<HERMES_HOME> hermes cron" in skill
+    assert "Do not search for or install a second Hermes backend" in skill
+    assert "native `hermes mcp add`" in skill
+    assert "public profile-scoped `hermes cron`" in skill
     assert "run_synthetic_completed_sessions.py" not in skill
 
 
@@ -192,3 +200,104 @@ def test_uninstall_refuses_a_launcher_inside_the_owned_runtime(
             local_appdata,
             "0.1.16-dev.1",
         )
+
+
+def test_package_preflight_projects_only_needed_environment(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("HERMES_HOME", "C:/profiles/fresh")
+    monkeypatch.setenv("LOCALAPPDATA", "C:/local")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "must-not-enter-preflight")
+
+    values = _environment(Namespace(hermes_home=None, local_appdata=None, data_dir=None))
+
+    assert values["HERMES_HOME"] == "C:/profiles/fresh"
+    assert values["LOCALAPPDATA"] == "C:/local"
+    assert "OPENROUTER_API_KEY" not in values
+
+
+def test_quickstart_child_environment_scrubs_hermes_python_paths(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("PATH", os.environ.get("PATH", ""))
+    monkeypatch.setenv("PYTHONPATH", "C:/hermes/source;C:/hermes/venv/site-packages")
+    monkeypatch.setenv("VIRTUAL_ENV", "C:/hermes/venv")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "must-not-enter-concierge")
+
+    values = build_child_environment(tmp_path / "concierge-env")
+
+    assert values["PYTHONPATH"] == ""
+    assert values["VIRTUAL_ENV"] == ""
+    assert values["UV_PROJECT_ENVIRONMENT"] == str(tmp_path / "concierge-env")
+    assert "OPENROUTER_API_KEY" not in values
+
+
+def test_public_onboarding_is_a_short_quickstart_not_a_release_rehearsal():
+    skill = (ROOT / "SKILL.md").read_text(encoding="utf-8")
+
+    assert "Quick setup" in skill
+    assert "scripts/concierge_quickstart.py" not in skill
+    assert "scripts/concierge_package.py" not in skill
+    assert "uv run" not in skill
+    assert "--force" not in skill
+    assert len(skill.splitlines()) <= 150
+
+
+def test_manifest_treats_hermes_version_as_observed_not_pinned():
+    manifest = (ROOT / "manifest.yaml").read_text(encoding="utf-8")
+
+    assert 'hermes_cli: "public CLI/tools; no upper version pin"' in manifest
+    assert "0.20.x observed" not in manifest
+
+
+def test_quickstart_reports_automation_preference_mutation():
+    assert result_mutated(
+        {"mutated": False},
+        {"mutated": False},
+        {"mutated": True},
+    ) is True
+
+
+def test_quickstart_rejects_partial_automation_choices_before_setup():
+    with pytest.raises(ValueError, match="all three automation choices"):
+        validate_automation_choices("no", "yes", None)
+
+
+def test_quickstart_rejects_promotion_only_before_setup():
+    with pytest.raises(ValueError, match="capture source"):
+        validate_automation_choices("no", "no", "yes")
+
+
+def test_quickstart_console_receipt_omits_verbose_inventory_and_prompts():
+    condensed = condense_quickstart_receipt(
+        {
+            "action": "concierge_ready_for_hermes_registration",
+            "mutated": True,
+            "installation": {
+                "action": "installed",
+                "version": "0.1.16-dev.2",
+                "artifact_hash": "sha256:exact",
+                "runtime_project_path": "C:/runtime/artifact",
+                "skill_path": "C:/hermes/skills/concierge",
+                "artifact_files": ["private-noise"],
+            },
+            "initialization": {
+                "action": "database_initialized",
+                "data_directory": "C:/data",
+                "database_path": "C:/data/db.sqlite3",
+                "mcp": {"name": "taste_database"},
+            },
+            "automation": {
+                "action": "automation_preferences_saved",
+                "mutated": True,
+                "preferences": {"lane": "fully_auto"},
+                "native_hermes_jobs": {
+                    "plans": [{"name": "capture", "prompt": "very long"}]
+                },
+            },
+        },
+        receipt_path=Path("C:/data/quickstart-receipt.json"),
+    )
+
+    assert condensed["installation"].get("artifact_files") is None
+    assert condensed["automation"]["native_hermes_plan_count"] == 1
+    assert "prompt" not in str(condensed)
+    assert condensed["receipt_path"] == str(Path("C:/data/quickstart-receipt.json"))

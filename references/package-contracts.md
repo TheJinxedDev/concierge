@@ -46,7 +46,7 @@ into ongoing capture.
 
 The native-Hermes cron plans are exact: `concierge-backlog-capture`,
 `concierge-session-capture`, and `concierge-auto-promotion`, each with its own
-`concierge/automation/<kind>` owner marker, package marker `concierge@0.1.16-dev.1`,
+`concierge/automation/<kind>` owner marker, package marker `concierge@0.1.16-dev.2`,
 `concierge` skill, Sunday 04:00 host-local/no-catch-up schedule, explicit local
 delivery, workdir, and fingerprinted prompt. Familiar names alone never
 establish ownership. Concierge persists only the explicit preferences and plan;

@@ -80,17 +80,31 @@ the currently selected profile. The agent should read [`SKILL.md`](SKILL.md),
 clone or download this checkout as the beta runtime, and follow the explicit
 profile/MCP/cron consent flow.
 
-If you want to install the onboarding skill directly first, use the current
-public-beta branch:
+### Quick setup
+
+After checking out the immutable beta tag, the agent resolves three absolute,
+profile-scoped paths and runs one command from the repository root:
 
 ```text
-hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/main/SKILL.md
+python scripts/concierge_quickstart.py --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA> --environment-dir <CONCIERGE_ENV>
 ```
 
-The skill then obtains the repository checkout; it does not try to build or
-search for a second Hermes installation. This beta changes quickly, so record
-the commit hash in any report rather than assuming an old release tag describes
-the current code.
+That one helper performs read-only preflight, creates an isolated locked Python
+environment, installs the exact owned runtime, and initializes the selected
+profile's empty local library. It deliberately leaves MCP confirmation and all
+three automation choices to native Hermes so those remain visible and explicit.
+Its console receipt stays short; exact inventories and cron plans are saved at
+the reported profile-scoped `receipt_path`.
+
+If you want to inspect or install the onboarding skill directly first, use the
+current immutable public-beta tag:
+
+```text
+hermes skills install https://raw.githubusercontent.com/TheJinxedDev/concierge/v0.1.16-dev.2/SKILL.md
+```
+
+The skill then obtains the tagged repository checkout and runs one bounded
+quickstart; it does not build or search for a second Hermes installation.
 
 For example:
 
@@ -98,15 +112,24 @@ For example:
 
 Concierge is designed to integrate with an existing Hermes profile rather than install or replace an entire profile environment.
 
+To uninstall package-owned files later, run this from the original checkout,
+not from inside the installed runtime:
+
+```text
+python scripts/concierge_package.py uninstall --version 0.1.16-dev.2 --expected-artifact-hash <HASH> --hermes-home <HERMES_HOME> --local-appdata <LOCALAPPDATA>
+```
+
+The user library, MCP entry, and Hermes jobs are separate and are never silently
+deleted by this command.
+
 ## Current beta status
 
 The initial `0.1.16-dev` prerelease is superseded because it carried an older
-setup path. The current `0.1.16-dev.1` candidate uses native Hermes surfaces,
-clears inherited Python-runtime paths, and has a local disposable Windows smoke
-of package install/removal, MCP discovery, native Hermes cron
-creation/readback/removal, explicit automation choices, and empty-inbox
-promotion. A full fresh-agent walkthrough from this public link is the next
-test—not a claim already being made here.
+setup path. The current `0.1.16-dev.2` candidate uses native Hermes surfaces,
+one profile-scoped quickstart, no upper Hermes version pin, and substantially
+less installation ceremony. It preserves the same privacy, proposal, scoring,
+and explicit automation boundaries. A full fresh-agent walkthrough from this
+tag is the next test—not a claim already being made here.
 
 Current testing covers:
 
